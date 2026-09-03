@@ -1,254 +1,621 @@
 {
- "id": "mmh3-prompt-director-example",
- "revision": 0,
- "last_node_id": 6,
- "last_link_id": 5,
- "nodes": [
-  {
-   "id": 1,
-   "type": "MMH3_OllamaPromptWriter",
-   "pos": [
-    80,
-    120
-   ],
-   "size": [
-    460,
-    860
-   ],
-   "flags": {},
-   "order": 0,
-   "mode": 0,
-   "inputs": [
+  "id": "mmh3-prompt-director-example",
+  "revision": 0,
+  "last_node_id": 16,
+  "last_link_id": 15,
+  "nodes": [
     {
-     "name": "first_frame",
-     "type": "IMAGE",
-     "shape": 7,
-     "link": null
+      "id": 9,
+      "type": "easy clearCacheAll",
+      "pos": [
+        -1488.6123799143022,
+        430.6871438427434
+      ],
+      "size": [
+        141.7896484375,
+        26
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "type": "*",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "easy clearCacheAll",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      }
     },
     {
-     "name": "last_frame",
-     "type": "IMAGE",
-     "shape": 7,
-     "link": null
+      "id": 11,
+      "type": "easy cleanGpuUsed",
+      "pos": [
+        -1672.3567981545086,
+        430.6942213131135
+      ],
+      "size": [
+        161.3404296875,
+        26
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "type": "*",
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "*",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "easy cleanGpuUsed",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "input_ue_unconnectable": {},
+          "version": "7.8"
+        }
+      }
     },
     {
-     "name": "ref_images",
-     "type": "IMAGE",
-     "shape": 7,
-     "link": null
+      "id": 13,
+      "type": "MMH3_ShotSettings",
+      "pos": [
+        -2373.8338123149097,
+        760.0339813570695
+      ],
+      "size": [
+        400,
+        406
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "settings",
+          "type": "STRING",
+          "links": [
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "MMH3_ShotSettings"
+      },
+      "widgets_values": [
+        "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
+        "auto — 브리프에서 판단",
+        "auto — 브리프에서 판단",
+        "auto — 브리프에서 판단",
+        "auto — 브리프에서 판단",
+        "Japanese",
+        true,
+        true,
+        "",
+        "끄기",
+        "이미지 1의 인물",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "style": "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
+        "lens": "auto — 브리프에서 판단",
+        "depth_of_field": "auto — 브리프에서 판단",
+        "lighting_key": "auto — 브리프에서 판단",
+        "dialogue_mode": "auto — 브리프에서 판단",
+        "dialogue_language": "Japanese",
+        "include_soundscape": true,
+        "include_music": true,
+        "must_not": "",
+        "progression": "끄기",
+        "progression_target": "이미지 1의 인물",
+        "progression_seed": "",
+        "must_happen": ""
+      }
     },
     {
-     "name": "custom_style",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
+      "id": 10,
+      "type": "MMH3_OllamaPromptWriter",
+      "pos": [
+        -1265.8718247878694,
+        745.7171561959669
+      ],
+      "size": [
+        400,
+        726
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "spec",
+          "shape": 7,
+          "type": "STRING",
+          "link": 9
+        },
+        {
+          "name": "first_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "ref_images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "brief",
+          "type": "STRING",
+          "widget": {
+            "name": "brief"
+          },
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            13
+          ]
+        },
+        {
+          "name": "mode",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": [
+            7
+          ]
+        },
+        {
+          "name": "duration",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "raw",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "MMH3_OllamaPromptWriter"
+      },
+      "widgets_values": [
+        "",
+        "FOLLOW_DIRECTOR",
+        0,
+        0,
+        true,
+        5,
+        1024,
+        true,
+        0,
+        "http://127.0.0.1:11434",
+        "VladimirGav/gemma4-26b-16GB-VRAM-Uncensored:latest",
+        "fredrezones55/Qwen3.5-Uncensored-HauhauCS-Aggressive:9b",
+        0.6,
+        0,
+        16384,
+        1600,
+        500,
+        "0",
+        true,
+        true,
+        true,
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "brief": "",
+        "mode": "FOLLOW_DIRECTOR",
+        "duration": 0,
+        "shot_count": 0,
+        "link_to_director": true,
+        "max_ref_images": 5,
+        "image_max_side": 1024,
+        "vision_pass": true,
+        "vision_max_images": 0,
+        "ollama_url": "http://127.0.0.1:11434",
+        "model": "VladimirGav/gemma4-26b-16GB-VRAM-Uncensored:latest",
+        "vision_model": "fredrezones55/Qwen3.5-Uncensored-HauhauCS-Aggressive:9b",
+        "temperature": 0.6,
+        "llm_seed": 0,
+        "num_ctx": 16384,
+        "max_tokens": 1600,
+        "max_words": 500,
+        "keep_alive": "0",
+        "unload_after": true,
+        "auto_fix": true,
+        "force_english": true,
+        "template_prompt": "",
+        "director_node_id": ""
+      }
     },
     {
-     "name": "extra_directives",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
+      "id": 16,
+      "type": "MMH3_KillSwitch",
+      "pos": [
+        -2795.8940287209484,
+        282.2403427275309
+      ],
+      "size": [
+        327.31796875,
+        222
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "passthrough",
+          "shape": 7,
+          "type": "*",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "passthrough",
+          "type": "*",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "MMH3_KillSwitch"
+      },
+      "widgets_values": [
+        true,
+        true,
+        false,
+        true,
+        "http://127.0.0.1:11434",
+        true,
+        true
+      ],
+      "widgets_values_named": {
+        "comfy_models": true,
+        "isolated_workers": true,
+        "orphan_workers": false,
+        "ollama": true,
+        "ollama_url": "http://127.0.0.1:11434",
+        "node_cache": true,
+        "torch_cache": true
+      }
     },
     {
-     "name": "model_override",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
+      "id": 8,
+      "type": "PreviewAny",
+      "pos": [
+        -1263.214964728336,
+        194.88104110274352
+      ],
+      "size": [
+        580.2670360424061,
+        493.5613681718378
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "검사 리포트 (fix / warn)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "PreviewAny",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
     },
     {
-     "name": "unload_after",
-     "type": "BOOLEAN",
-     "shape": 7,
-     "link": null
+      "id": 14,
+      "type": "PreviewAny",
+      "pos": [
+        -1948.6594433777796,
+        743.7191763204797
+      ],
+      "size": [
+        630.4381751434357,
+        531.7935449581998
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source",
+          "type": "*",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "완성 프롬프트 → Director의 external_prompt_overwrite 로 연결",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.33.0",
+        "Node name for S&R": "PreviewAny",
+        "ue_properties": {
+          "widget_ue_connectable": {},
+          "version": "7.8",
+          "input_ue_unconnectable": {}
+        }
+      },
+      "widgets_values": [],
+      "widgets_values_named": {}
     },
     {
-     "name": "director_node_id",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
+      "id": 15,
+      "type": "MMH3_PromptFreeze",
+      "pos": [
+        -836.815809268898,
+        760.1108491308021
+      ],
+      "size": [
+        551.922633150929,
+        473.46076473281187
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "live",
+          "shape": 7,
+          "type": "STRING",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "name": "source",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "MMH3_PromptFreeze"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "prompt_text": ""
+      }
     },
     {
-     "name": "force_english",
-     "type": "BOOLEAN",
-     "shape": 7,
-     "link": null
-    },
-    {
-     "name": "enhance",
-     "type": "BOOLEAN",
-     "shape": 7,
-     "link": null
-    },
-    {
-     "name": "genre",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
-    },
-    {
-     "name": "enhance_override",
-     "type": "STRING",
-     "shape": 7,
-     "link": null
+      "id": 7,
+      "type": "MMH3_ShotBuilder",
+      "pos": [
+        -2445.0706693720285,
+        275.8286132494472
+      ],
+      "size": [
+        1166.0629829184413,
+        324
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "settings",
+          "shape": 7,
+          "type": "STRING",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "brief",
+          "type": "STRING",
+          "links": [
+            11,
+            12
+          ]
+        },
+        {
+          "name": "spec",
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "properties": {
+        "mmh3_width": 1166.0629829184413,
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "MMH3_ShotBuilder"
+      },
+      "widgets_values": [
+        "{\"version\":1,\"shots\":[{\"text\":\"\\n\",\"viewpoint\":\"pov\",\"vp_target\":\"man\",\"size\":\"\",\"angle\":\"\",\"facing\":\"\",\"shot_type\":\"\",\"motion\":\"\",\"amp\":\"\",\"speed\":\"\",\"at\":null,\"transition\":\"cut\",\"acts\":[],\"lines\":[],\"extra\":\"\\n\"}],\"refs\":[{\"n\":1,\"role\":\"character_full\"}]}",
+        null
+      ],
+      "widgets_values_named": {
+        "shots_data": "{\"version\":1,\"shots\":[{\"text\":\"\\n\",\"viewpoint\":\"pov\",\"vp_target\":\"man\",\"size\":\"\",\"angle\":\"\",\"facing\":\"\",\"shot_type\":\"\",\"motion\":\"\",\"amp\":\"\",\"speed\":\"\",\"at\":null,\"transition\":\"cut\",\"acts\":[],\"lines\":[],\"extra\":\"\\n\"}],\"refs\":[{\"n\":1,\"role\":\"character_full\"}]}",
+        "shot_cards": null
+      }
     }
-   ],
-   "outputs": [
-    {
-     "name": "prompt",
-     "type": "STRING",
-     "links": [
-      1
-     ]
-    },
-    {
-     "name": "mode",
-     "type": "STRING",
-     "links": null
-    },
-    {
-     "name": "report",
-     "type": "STRING",
-     "links": [
-      2
-     ]
-    },
-    {
-     "name": "duration",
-     "type": "INT",
-     "links": null
-    },
-    {
-     "name": "raw",
-     "type": "STRING",
-     "links": null
-    },
-    {
-     "name": "enhanced_brief",
-     "type": "STRING",
-     "links": null
-    }
-   ],
-   "properties": {
-    "Node name for S&R": "MMH3_OllamaPromptWriter"
-   },
-   "widgets_values": [
-    "비 오는 새벽 골목, 세일러복 여학생이 우산을 들고 뛰어가다가 멈춰서 뒤를 돌아본다",
-    "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
-    true,
-    "FOLLOW_DIRECTOR",
-    0,
-    0,
-    "none",
-    "Korean",
-    "",
-    true,
-    true,
-    "http://127.0.0.1:11434",
-    "qwen2.5vl:7b",
-    0.6,
-    0,
-    8192,
-    1200,
-    "5m",
-    true
-   ]
-  },
-  {
-   "id": 2,
-   "type": "PreviewAny",
-   "pos": [
-    600,
-    120
-   ],
-   "size": [
-    520,
-    420
-   ],
-   "flags": {},
-   "order": 1,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "source",
-     "type": "*",
-     "link": 1
-    }
-   ],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "PreviewAny"
-   },
-   "widgets_values": [],
-   "title": "완성 프롬프트 → Director의 external_prompt_overwrite 로 연결"
-  },
-  {
-   "id": 3,
-   "type": "PreviewAny",
-   "pos": [
-    600,
-    580
-   ],
-   "size": [
-    520,
-    300
-   ],
-   "flags": {},
-   "order": 2,
-   "mode": 0,
-   "inputs": [
-    {
-     "name": "source",
-     "type": "*",
-     "link": 2
-    }
-   ],
-   "outputs": [],
-   "properties": {
-    "Node name for S&R": "PreviewAny"
-   },
-   "widgets_values": [],
-   "title": "검사 리포트 (fix / warn)"
-  },
-  {
-   "id": 4,
-   "type": "MarkdownNote",
-   "pos": [
-    80,
-    1010
-   ],
-   "size": [
-    1040,
-    300
-   ],
-   "flags": {},
-   "order": 3,
-   "mode": 0,
-   "properties": {},
-   "widgets_values": [
-    "## 연결 방법 (연결선은 딱 1개)\n\n`🎬 MiniMax H3 Prompt Writer (Ollama)` 의 **prompt** 출력 →\n`MiniMaxH3Director` 의 **external_prompt_overwrite** 입력. 이게 전부입니다.\n\n**link_to_director = True** 이면 나머지는 자동입니다:\n\n- Director의 **mode** 위젯(T2VA / I2VA / FL2VA / REF2VA)을 그대로 따라갑니다\n- Director의 **duration** 을 그대로 씁니다 (Writer의 duration 은 0으로 두세요)\n- Director의 **미디어 레인에 올린 이미지**를 슬롯 순서대로 읽어서 Ollama 비전 모델에 넘깁니다\n\n즉 Director에서 이미지를 갈아끼우고 모드만 바꾸면, 프롬프트는 알아서 그 모드 규격으로 다시 써집니다.\n\n수동으로 덮어쓰고 싶을 때만:\n- `mode` 를 FOLLOW_DIRECTOR 가 아닌 값으로 → 그 모드 강제 (이미지도 그 모드에 맞게 다시 고름)\n- `duration` 을 1 이상으로 → 그 값 강제\n- `first_frame` / `last_frame` / `ref_images` 에 IMAGE 를 직접 연결 → Director 이미지 대신 사용\n\n이미지를 쓰려면 Ollama에 비전 모델이 필요합니다: `ollama pull qwen2.5vl:7b`\n"
-   ]
-  }
- ],
- "links": [
-  [
-   1,
-   1,
-   0,
-   2,
-   0,
-   "*"
   ],
-  [
-   2,
-   1,
-   2,
-   3,
-   0,
-   "*"
-  ]
- ],
- "groups": [],
- "config": {},
- "extra": {},
- "version": 0.4
+  "links": [
+    [
+      7,
+      10,
+      2,
+      8,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      11,
+      0,
+      9,
+      0,
+      "*"
+    ],
+    [
+      9,
+      7,
+      1,
+      10,
+      0,
+      "STRING"
+    ],
+    [
+      10,
+      9,
+      0,
+      10,
+      4,
+      "STRING"
+    ],
+    [
+      11,
+      7,
+      0,
+      11,
+      0,
+      "STRING"
+    ],
+    [
+      12,
+      7,
+      0,
+      14,
+      0,
+      "STRING"
+    ],
+    [
+      13,
+      10,
+      0,
+      15,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      16,
+      0,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      15,
+      13,
+      0,
+      16,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7078500000000005,
+      "offset": [
+        3160.0995781423817,
+        -31.466436713618336
+      ]
+    },
+    "frontendVersion": "1.49.6"
+  },
+  "version": 0.4
 }
