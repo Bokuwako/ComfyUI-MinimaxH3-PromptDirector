@@ -1,0 +1,170 @@
+{
+  "_comment": "MiniMax H3 Prompt Director - style dictionary. Add your own entries freely; the node reads this file at load time. 'key' order defines the dropdown order.",
+  "_schema": {
+    "label": "dropdown label shown in ComfyUI",
+    "style_line": "English tokens that MUST open [Shot 1]",
+    "render": "surface / texture / linework cues",
+    "lighting": "lighting behaviour for this style",
+    "camera": "camera-motion tendency (uses guideline vocabulary)",
+    "motion": "how bodies and objects move in this style",
+    "soundscape": "ambience tendency for overall_soundscape",
+    "music": "instrumentation tendency for non_diegetic_music",
+    "avoid": "things that break this style"
+  },
+
+  "auto": {
+    "label": "00. Auto (자연어에서 스타일 자동 판별)",
+    "style_line": "",
+    "render": "",
+    "lighting": "",
+    "camera": "",
+    "motion": "",
+    "soundscape": "",
+    "music": "",
+    "avoid": ""
+  },
+
+  "live_action_cinematic": {
+    "label": "01. 실사 - Live-action Cinematic",
+    "style_line": "Live-action, cinematic",
+    "render": "photographic realism, true skin texture with visible pores and fine hair, natural fabric weave, shallow depth of field, subtle lens bloom and mild chromatic aberration, fine film grain",
+    "lighting": "motivated practical lighting with a clear key direction, soft falloff, realistic bounce and colour temperature separation between warm interior and cool exterior",
+    "camera": "prefers Push In / Pull Out, Tracking Shot, Truck Left / Truck Right and Static Shot; small amplitude at slow speed unless the action demands otherwise",
+    "motion": "physically grounded weight and momentum, natural micro-movements, breathing and blinking, cloth and hair responding to inertia",
+    "soundscape": "detailed real-world ambience with room tone, footsteps on a specific surface, cloth rustle and breathing",
+    "music": "sparse acoustic or orchestral instrumentation, restrained dynamics",
+    "avoid": "cel shading, outlines, exaggerated squash-and-stretch, plastic skin, illustration flatness"
+  },
+
+  "semi_realistic": {
+    "label": "02. 반실사 - Semi-realistic / Stylized Realism",
+    "style_line": "Semi-realistic stylized render, cinematic",
+    "render": "realistic proportions with slightly idealized features, smooth skin shading that keeps subsurface warmth, painterly micro-detail, clean specular highlights, subtle rim definition without hard outlines",
+    "lighting": "sculpted three-point lighting with a strong rim, gentle colour grading, slightly lifted shadows",
+    "camera": "prefers Arc Shot, Push In and Tracking Shot with medium amplitude at slow speed",
+    "motion": "natural human motion with a light stylized accent on key poses and follow-through",
+    "soundscape": "clean realistic ambience with slightly heightened detail on key actions",
+    "music": "hybrid orchestral and synth textures at a moderate tempo",
+    "avoid": "photographic skin blemishes, documentary handheld noise, flat 2D shading, cartoon outlines"
+  },
+
+  "cg_3d_animation": {
+    "label": "03. 3D CG 애니메이션 - 3D CG / Feature Animation",
+    "style_line": "3D CG animation, feature-animation look",
+    "render": "polished subsurface-scattering skin, stylized appealing character proportions with large expressive eyes, physically based materials, soft ambient occlusion, clean specular highlights, plush groomed hair and cloth simulation",
+    "lighting": "bright bounce-rich global illumination, colourful rim lights, soft shadows with tinted fill",
+    "camera": "prefers Arc Shot, Push In, Pedestal Up / Pedestal Down and Tracking Shot with medium amplitude at normal speed",
+    "motion": "animated timing with anticipation, overshoot and settle, expressive facial acting, secondary motion in hair and cloth",
+    "soundscape": "clean designed ambience with crisp foley on every visible action",
+    "music": "orchestral with playful woodwinds and percussion, clear dynamic build",
+    "avoid": "photoreal pores, film grain, cel-shaded flat fills, hand-drawn linework"
+  },
+
+  "anime_2d": {
+    "label": "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
+    "style_line": "2D Japanese cel animation, anime",
+    "render": "hand-drawn linework with consistent line weight, flat cel shading with hard two-tone shadow separation, painted background art with visible brush texture, anime eye highlights, limited colour palette, speed lines and impact frames where the action calls for it",
+    "lighting": "graphic light shapes rather than physical falloff, warm sunlight bloom, coloured rim light on the character silhouette",
+    "camera": "prefers Static Shot held on key poses, Pan Left / Pan Right across background art, Zoom In on reaction beats, and Tracking Shot for running action",
+    "motion": "animated on twos with strong key poses, held frames, smear frames on fast movement, expressive hair and clothing swing",
+    "soundscape": "stylized foley with clear separation, wind and cicadas for exteriors, footsteps mixed forward",
+    "music": "piano, strings and light band instrumentation, or bright synth for energetic scenes",
+    "avoid": "photoreal texture, 3D shading gradients, depth-of-field blur across the whole frame, realistic skin pores"
+  },
+
+  "stop_motion_clay": {
+    "label": "05. 클레이·스톱모션 - Claymation / Stop-motion",
+    "style_line": "Claymation stop-motion",
+    "render": "visible fingerprint dents and tool marks in modelling clay, felt and fabric textures with real fibre, slightly uneven handmade surfaces, miniature practical set with visible seams, shallow macro depth of field",
+    "lighting": "small hard practical lights on a miniature set, crisp shadows, warm tungsten cast",
+    "camera": "prefers Static Shot and slow Push In with small amplitude; movement is stepped rather than perfectly smooth",
+    "motion": "frame-stepped motion at a reduced frame rate, tiny jitter between poses, boiling surface detail, deliberate weighty gestures",
+    "soundscape": "close miniature foley, soft clay squish, fabric friction, small wooden knocks",
+    "music": "ukulele, pizzicato strings, toy piano and light hand percussion",
+    "avoid": "perfectly smooth interpolation, digital gloss, photoreal human skin, motion blur"
+  },
+
+  "vintage_film_doc": {
+    "label": "06. 빈티지 필름·다큐 - Vintage Film / Documentary",
+    "style_line": "Vintage film, 16mm documentary look",
+    "render": "heavy film grain, halation around highlights, faded low-contrast colour with cyan shadows and warm creamy highlights, slight gate weave, occasional dust and scratch, softer vintage lens rendering with vignetting",
+    "lighting": "available light only, blown-out windows, uncorrected mixed colour temperature",
+    "camera": "prefers handheld Tracking Shot, Shake Slightly, Pan Left / Pan Right searching for the subject, and Zoom In with medium amplitude at fast speed as an operator-driven reframe",
+    "motion": "unrehearsed naturalistic behaviour, subjects occasionally acknowledging the camera",
+    "soundscape": "raw location sound with wind on the microphone, distant traffic and overlapping incidental voices",
+    "music": "N/A by default, or a single sparse acoustic instrument",
+    "avoid": "clean digital sharpness, perfect stabilization, colour-graded gloss, animated shading"
+  },
+
+  "watercolor_ink": {
+    "label": "07. 수채화·잉크 - Watercolour / Ink Illustration",
+    "style_line": "Watercolour and ink illustration, animated",
+    "render": "visible paper grain, wet-on-wet colour bleed with hard drying edges, granulating pigment pooling, loose ink linework that breaks and varies in weight, generous white paper left unpainted",
+    "lighting": "light rendered as untouched paper and pale washes rather than physical shading",
+    "camera": "prefers Static Shot and slow Pan across the composition, Zoom In with small amplitude at slow speed",
+    "motion": "gentle floating motion, edges that breathe and re-bleed slightly each frame, pigment blooming into new shapes",
+    "soundscape": "quiet, minimal ambience with a few delicate isolated details",
+    "music": "solo piano or harp with wide spacing at a slow tempo",
+    "avoid": "hard digital edges, photoreal texture, glossy specular highlights, dense full-frame colour"
+  },
+
+  "pixel_retro_game": {
+    "label": "08. 픽셀아트·레트로 게임 - Pixel Art / Retro Game",
+    "style_line": "Pixel art, 16-bit retro game look",
+    "render": "strict pixel grid with no anti-aliasing, limited indexed palette, dithered gradients, chunky readable sprites, tile-based backgrounds, visible scanlines and slight CRT curvature",
+    "lighting": "palette-swap lighting, hard two-step shadow, glowing pixel highlights",
+    "camera": "prefers Static Shot and Truck Left / Truck Right as a side-scrolling parallax move, snapping to whole pixels",
+    "motion": "low frame-rate sprite animation with a small number of distinct frames, stepped movement, no sub-pixel drift",
+    "soundscape": "chiptune sound effects, square-wave blips, 8-bit impacts and simple noise-channel textures",
+    "music": "chiptune with square lead, triangle bass and noise percussion at a driving tempo",
+    "avoid": "smooth anti-aliased edges, gradients outside the palette, motion blur, photoreal detail"
+  },
+
+  "commercial_product": {
+    "label": "09. 광고·제품 CF - Commercial / Product Film",
+    "style_line": "High-end commercial product film, live-action",
+    "render": "immaculate surfaces, controlled specular reflections, crisp edge definition, macro-level material detail, seamless gradient backdrop or minimal styled set, high dynamic range with clean whites",
+    "lighting": "large soft sources with precise negative fill, sculpted highlight lines along product edges, no unmotivated spill",
+    "camera": "prefers slow Arc Shot around the product, Push In with small amplitude at slow speed, Zoom In on detail, and precise Static Shot for the hero hold",
+    "motion": "smooth mechanically precise moves, slow-motion pours and impacts, elements assembling with exact timing",
+    "soundscape": "hyper-detailed close foley — a single click, a liquid pour, fabric release — over near-silent ambience",
+    "music": "clean electronic pulse with a rising build and a decisive final hit",
+    "avoid": "handheld shake, dust and wear on the product, cluttered backgrounds, film grain"
+  },
+
+  "music_video_neon": {
+    "label": "10. 뮤직비디오·네온 사이버펑크 - Music Video / Neon Cyberpunk",
+    "style_line": "Music-video look, neon cyberpunk, cinematic",
+    "render": "saturated magenta and cyan colour separation, wet reflective surfaces doubling every light source, volumetric haze, anamorphic lens flares, strong bloom, deep crushed blacks",
+    "lighting": "practical neon signage as the key light, hard coloured rim from behind, strobing and pulsing sources",
+    "camera": "prefers Tracking Shot, Roll Clockwise / Roll Counterclockwise, Arc Shot and Shake Strongly, often with large amplitude at fast speed",
+    "motion": "rhythmic movement cut to the beat, speed ramps, sudden freezes into motion",
+    "soundscape": "rain on wet asphalt, distant city hum, electrical buzz from signage, passing vehicles",
+    "music": "synthwave with a driving drum machine, deep bass and a filtered rising build",
+    "avoid": "flat daylight, pastel palettes, static locked-off framing, documentary neutrality"
+  },
+
+  "webtoon_cartoon": {
+    "label": "11. 웹툰·카툰 - Webtoon / Western Cartoon",
+    "style_line": "Webtoon-style 2D cartoon animation",
+    "render": "bold uniform outlines, flat bright fills with minimal shading, simplified geometric shapes, exaggerated expressive faces, screentone or halftone accents, clean vector-like edges",
+    "lighting": "single flat shadow shape per form, no gradient falloff",
+    "camera": "prefers Static Shot with punchy Zoom In on reactions and quick Pan Left / Pan Right with large amplitude at fast speed",
+    "motion": "snappy squash-and-stretch, exaggerated anticipation, comedic holds, motion lines and impact bursts",
+    "soundscape": "punctuating cartoon foley — pops, whooshes, boings — over sparse ambience",
+    "music": "bouncy ukulele, marimba and light percussion at a brisk tempo",
+    "avoid": "realistic proportions, soft gradients, film grain, photoreal lighting"
+  },
+
+  "miniature_tiltshift": {
+    "label": "12. 미니어처·틸트시프트 - Miniature / Tilt-shift",
+    "style_line": "Live-action tilt-shift miniature look",
+    "render": "extremely shallow horizontal band of focus with strong blur above and below, oversaturated toy-like colour, high contrast, subjects reading as tiny models",
+    "lighting": "bright hard overhead light suggesting a scale model under studio lamps",
+    "camera": "prefers high-angle Static Shot and slow Pedestal Down or Tilt Down with small amplitude",
+    "motion": "slightly accelerated time-lapse motion so people and vehicles move like wind-up toys",
+    "soundscape": "distant muted ambience as if heard from far above, with no close foley",
+    "music": "light plucked strings and glockenspiel at a brisk tempo",
+    "avoid": "eye-level framing, deep focus, realistic pacing, close-up detail"
+  }
+}

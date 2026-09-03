@@ -1,0 +1,15 @@
+# 파이썬
+__pycache__/
+*.py[cod]
+
+# 작업 중 남긴 백업 — 저장소에 올리지 않습니다
+_backup/
+*.bak*
+*.unused
+*_kept_*
+
+# OS / 편집기
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

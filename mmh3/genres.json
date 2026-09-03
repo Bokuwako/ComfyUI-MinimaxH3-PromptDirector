@@ -1,0 +1,123 @@
+{
+  "_comment": "Enhancer genre presets. These are DIRECTING axes (camera restraint, pacing, beat shape, lighting change, blocking, guardrails) — not visual style. Visual style stays in styles.json. Add your own entries freely.",
+  "_schema": {
+    "label": "dropdown label",
+    "camera": "camera distance / movement discipline for this genre",
+    "pacing": "beat count and rhythm across the clip",
+    "beats": "the default dramatic shape to fill in",
+    "lighting": "how light should change over time",
+    "blocking": "where subjects are placed and how they move through frame",
+    "sound": "what the soundscape should carry",
+    "guards": "negative guardrails — what this genre must NOT do"
+  },
+  "auto": {
+    "label": "00. Auto (자연어에서 장르 자동 판별)",
+    "camera": "",
+    "pacing": "",
+    "beats": "",
+    "lighting": "",
+    "blocking": "",
+    "sound": "",
+    "guards": ""
+  },
+  "slice_of_life": {
+    "label": "01. 일상 · 슬라이스 오브 라이프",
+    "camera": "eye-level, mostly locked off or a very small drift; medium and medium-wide framing; the camera observes rather than chases",
+    "pacing": "one unhurried beat, or two at most; long held moments; nothing is rushed",
+    "beats": "establish the space and the mood → one small human action (a hand, a glance, an object picked up) → a settling breath afterwards",
+    "lighting": "one dominant natural source with a clear direction; slow, gentle change such as a cloud passing or light shifting across a surface",
+    "blocking": "the subject stays roughly where they are; small gestures rather than travel across the frame",
+    "sound": "detailed room tone, small specific foley (cloth, cup, footstep), distant ambience",
+    "guards": "no dramatic camera moves, no fast cuts, no sudden events, no action-movie energy"
+  },
+  "action": {
+    "label": "02. 액션",
+    "camera": "tracking and handheld energy, low angles, sudden distance changes; large amplitude at fast speed is welcome",
+    "pacing": "two to four tight beats; every beat escalates; no dead air",
+    "beats": "a coiled preparation → the explosive move → the impact and its consequence → the aftermath pose or recovery",
+    "lighting": "hard contrast, strong rim separation, sparks or flashes tied to impacts",
+    "blocking": "subjects cross the frame decisively, enter and exit frame edges, change screen direction on impacts; when two subjects engage, give each one its own stance and its own line — attacker and defender never share a sentence",
+    "sound": "impacts with weight, cloth and air movement, breath between exertions",
+    "guards": "no floaty slow drifting, no ambiguous geography, never let two consecutive beats have the same energy level"
+  },
+  "pov_first_person": {
+    "label": "03. POV · 1인칭",
+    "camera": "fixed at the subject's actual eye height, facing forward; only micro-movement and small sway; the camera IS the character's head",
+    "pacing": "one continuous take; changes come from the world moving, not from cutting",
+    "beats": "establish what the viewer's own eyes see → something changes in the world in front of them → their own hands react or the view resolves",
+    "lighting": "light changes must be motivated by the environment the viewer is passing through, and must spill onto the visible hands and nearby surfaces",
+    "blocking": "only the viewer's own hands, arms and sleeves ever appear, entering from the lower edge of frame; everything else is the outside world",
+    "sound": "close, head-adjacent sound — own breathing, own clothing, handled objects loud; the world slightly behind that",
+    "guards": "the camera NEVER orbits, never rotates around the subject, never cuts to a third-person view, never shows the viewer's face or full body; no large zooms, no perspective swings"
+  },
+  "travel_transition": {
+    "label": "04. 이동 · 여정 (트랜지션 중심)",
+    "camera": "locked to the moving vehicle or body; the frame is stable while the world streams past it",
+    "pacing": "three beats built around one clear threshold — before, crossing, after",
+    "beats": "the departure world streaming past → the threshold that hides it (tunnel, doorway, crest, fog) → the arrival world revealed as different",
+    "lighting": "the threshold IS the lighting event — bright to dark to bright, or cool to warm; interior surfaces must pick up each change",
+    "blocking": "the subject barely moves; the background does all the travelling, horizontally and steadily",
+    "sound": "continuous transport rhythm that changes character at the threshold (open air → enclosed reverb → open air)",
+    "guards": "the interior or the subject must not drift or wobble independently; do not cut across the threshold — the change happens inside one continuous view"
+  },
+  "emotion_romance": {
+    "label": "05. 감정 · 로맨스",
+    "camera": "slow push in with small amplitude, or a patient static shot; close and medium-close framing; shallow separation from the background",
+    "pacing": "one long beat that breathes; the change is internal and small",
+    "beats": "a held stillness → the smallest physical tell (a breath, a blink, fingers tightening, eyes moving) → the moment landing and holding",
+    "lighting": "soft, warm, wrapping; a gentle bloom on the edge of the face and hair; slow rise or slow fade",
+    "blocking": "minimal travel; proximity and small shifts in distance carry everything",
+    "sound": "near silence with one or two intimate details — breath, fabric, a distant room",
+    "guards": "no fast movement, no cuts on the emotional beat, no busy background action, never describe the feeling itself — only the visible tell"
+  },
+  "horror_suspense": {
+    "label": "06. 호러 · 서스펜스",
+    "camera": "static and patient, or a very slow creep; deliberately withhold — keep things at the edge of frame or just out of focus",
+    "pacing": "a long quiet stretch, then one change; the quiet must be genuinely long",
+    "beats": "an ordinary space held slightly too long → a small wrongness appears at the periphery → the reveal or the refusal to reveal",
+    "lighting": "deep shadow with one weak source; darkness that hides most of the frame; light that flickers or fails",
+    "blocking": "movement happens in the background or the frame edge, not the centre; the subject often has their back to it",
+    "sound": "near-silence with a low floor; one specific sound out of place; the absence of expected sound",
+    "guards": "no jump-scare camera lurches, no fast zooms, do not show the threat fully unless asked, never fill the quiet with music"
+  },
+  "commercial_product": {
+    "label": "07. 광고 · 제품",
+    "camera": "precise mechanical moves — slow arcs, exact push-ins, locked hero holds; macro detail framing",
+    "pacing": "three crisp beats landing on a final hold; every move has an exact end position",
+    "beats": "a detail or texture → the action that demonstrates the product → the hero composition holding still",
+    "lighting": "large soft sources with controlled edge highlights; clean whites; the light itself is styled",
+    "blocking": "the product is always the compositional anchor; hands serve it and leave frame",
+    "sound": "hyper-detailed close foley — one click, one pour, one release — over near silence",
+    "guards": "no handheld shake, no clutter, no dust or wear, no ambiguous framing, nothing upstages the product"
+  },
+  "music_video": {
+    "label": "08. 뮤직비디오 · 리듬",
+    "camera": "expressive and mobile — arcs, rolls, whip movement, sudden distance jumps; movement is choreography",
+    "pacing": "cuts and moves land on a beat; three to four punchy segments",
+    "beats": "a striking opening image → a movement that answers the rhythm → an escalation → a final held pose",
+    "lighting": "saturated and directional, pulsing or strobing, colour separation between foreground and background",
+    "blocking": "the subject drives the frame — entering, filling, exiting on rhythm",
+    "sound": "diegetic accents that lock to the rhythm; the space itself feels percussive",
+    "guards": "no documentary neutrality, no flat daylight, no aimless drifting between beats"
+  },
+  "adult_intimate": {
+    "label": "09. 성인 · 친밀 장면",
+    "camera": "commit to ONE camera relationship and hold it — a fixed POV eye-line, or a locked close framing; movement limited to micro-drift and the motion already present in the scene",
+    "pacing": "one continuous unbroken beat; the change is in intensity, not in location; cutting breaks the continuity this genre depends on",
+    "beats": "each participant's posture and the contact between them established → one participant drives a movement while the other responds → a gradual build in range and tempo → a sustained peak → a settling",
+    "lighting": "one soft dominant source, warm; skin and fabric keep a consistent tone across the whole clip; no lighting change unless asked",
+    "blocking": "fix each participant separately before any movement is described — which way each one faces, whether their body axis is upright, horizontal or inclined, what supports them, where their limbs rest — then state the spatial relation between them (who is above, behind, beside or in front, and what is in contact with what); never describe two participants in one shared sentence, and state explicitly what stays inside the frame and what stays outside it",
+    "sound": "close breathing, fabric and contact detail, room tone; typically no score",
+    "guards": "never cut, never change camera distance mid-clip, never orbit or switch to a third-person view, never introduce a new character or location, never change the lighting; keep the visible framing boundaries stated so the model does not drift outside them"
+  },
+  "free": {
+    "label": "10. 자유 (프리셋 없이 브리프만 확장)",
+    "camera": "follow whatever the brief implies; do not impose a genre grammar",
+    "pacing": "follow the brief",
+    "beats": "expand only what the brief already contains — fill in timing, framing and light, invent nothing new",
+    "lighting": "only what the brief implies",
+    "blocking": "only what the brief implies",
+    "sound": "only what the brief implies",
+    "guards": "do not add events, characters, locations or emotions that the brief did not ask for"
+  }
+}

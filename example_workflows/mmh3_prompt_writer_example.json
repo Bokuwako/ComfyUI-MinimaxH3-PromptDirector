@@ -1,0 +1,254 @@
+{
+ "id": "mmh3-prompt-director-example",
+ "revision": 0,
+ "last_node_id": 6,
+ "last_link_id": 5,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "MMH3_OllamaPromptWriter",
+   "pos": [
+    80,
+    120
+   ],
+   "size": [
+    460,
+    860
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "first_frame",
+     "type": "IMAGE",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "last_frame",
+     "type": "IMAGE",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "ref_images",
+     "type": "IMAGE",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "custom_style",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "extra_directives",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "model_override",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "unload_after",
+     "type": "BOOLEAN",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "director_node_id",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "force_english",
+     "type": "BOOLEAN",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "enhance",
+     "type": "BOOLEAN",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "genre",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    },
+    {
+     "name": "enhance_override",
+     "type": "STRING",
+     "shape": 7,
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "links": [
+      1
+     ]
+    },
+    {
+     "name": "mode",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "name": "report",
+     "type": "STRING",
+     "links": [
+      2
+     ]
+    },
+    {
+     "name": "duration",
+     "type": "INT",
+     "links": null
+    },
+    {
+     "name": "raw",
+     "type": "STRING",
+     "links": null
+    },
+    {
+     "name": "enhanced_brief",
+     "type": "STRING",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MMH3_OllamaPromptWriter"
+   },
+   "widgets_values": [
+    "비 오는 새벽 골목, 세일러복 여학생이 우산을 들고 뛰어가다가 멈춰서 뒤를 돌아본다",
+    "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
+    true,
+    "FOLLOW_DIRECTOR",
+    0,
+    0,
+    "none",
+    "Korean",
+    "",
+    true,
+    true,
+    "http://127.0.0.1:11434",
+    "qwen2.5vl:7b",
+    0.6,
+    0,
+    8192,
+    1200,
+    "5m",
+    true
+   ]
+  },
+  {
+   "id": 2,
+   "type": "PreviewAny",
+   "pos": [
+    600,
+    120
+   ],
+   "size": [
+    520,
+    420
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 1
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "완성 프롬프트 → Director의 external_prompt_overwrite 로 연결"
+  },
+  {
+   "id": 3,
+   "type": "PreviewAny",
+   "pos": [
+    600,
+    580
+   ],
+   "size": [
+    520,
+    300
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 2
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "검사 리포트 (fix / warn)"
+  },
+  {
+   "id": 4,
+   "type": "MarkdownNote",
+   "pos": [
+    80,
+    1010
+   ],
+   "size": [
+    1040,
+    300
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "properties": {},
+   "widgets_values": [
+    "## 연결 방법 (연결선은 딱 1개)\n\n`🎬 MiniMax H3 Prompt Writer (Ollama)` 의 **prompt** 출력 →\n`MiniMaxH3Director` 의 **external_prompt_overwrite** 입력. 이게 전부입니다.\n\n**link_to_director = True** 이면 나머지는 자동입니다:\n\n- Director의 **mode** 위젯(T2VA / I2VA / FL2VA / REF2VA)을 그대로 따라갑니다\n- Director의 **duration** 을 그대로 씁니다 (Writer의 duration 은 0으로 두세요)\n- Director의 **미디어 레인에 올린 이미지**를 슬롯 순서대로 읽어서 Ollama 비전 모델에 넘깁니다\n\n즉 Director에서 이미지를 갈아끼우고 모드만 바꾸면, 프롬프트는 알아서 그 모드 규격으로 다시 써집니다.\n\n수동으로 덮어쓰고 싶을 때만:\n- `mode` 를 FOLLOW_DIRECTOR 가 아닌 값으로 → 그 모드 강제 (이미지도 그 모드에 맞게 다시 고름)\n- `duration` 을 1 이상으로 → 그 값 강제\n- `first_frame` / `last_frame` / `ref_images` 에 IMAGE 를 직접 연결 → Director 이미지 대신 사용\n\n이미지를 쓰려면 Ollama에 비전 모델이 필요합니다: `ollama pull qwen2.5vl:7b`\n"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   2,
+   0,
+   "*"
+  ],
+  [
+   2,
+   1,
+   2,
+   3,
+   0,
+   "*"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {},
+ "version": 0.4
+}
