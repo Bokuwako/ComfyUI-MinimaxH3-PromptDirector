@@ -25,6 +25,21 @@ MiniMax H3 (DaSiWa `MiniMaxH3Director`) 용 **Ollama 기반 프롬프트 생성�
 
 ---
 
+### v2 에서 새로 생긴 것
+
+| | |
+|---|---|
+| 📚 **에셋 라이브러리** | 배우·의상·장소·소품·레이아웃·목소리를 이름으로 저장해 두고 다른 워크플로우에서 불러 씁니다. 노드 2개 + 전체 화면 관리 패널 |
+| 🎭 **테마 (장르)** | 스타일과 **따로** 고릅니다. 스타일이 매체를, 테마가 장르를 정합니다 — `2D 애니` + `그라비아 화보` = 애니 화보 |
+| ✂️ **샷 연결 방식** | 컷 뒤의 샷이 앞 샷과 어떤 관계인지 고릅니다. 컷마다 배경이 바뀌던 문제가 여기서 해결됩니다 |
+| ⏱️ **대사 길이 검사** | 러닝타임에 대사가 안 들어가면 경고합니다. 일본어·한국어는 글자 수로 셉니다 |
+| 🔒 **Prompt Freeze 편집이 실제로 편집을 합니다** | 편집 가이드라인을 11,349자 → 1,721자로 줄였습니다. 길었을 때는 모델이 편집 대신 새로 썼습니다 |
+
+자세한 내용과 고친 것들은 **[CHANGELOG.md](CHANGELOG.md)** 에 있습니다.
+파이썬이 바뀌었으므로 업데이트 후 **ComfyUI 재시작**이 필요합니다.
+
+---
+
 ## 0. 30초 사용법
 
 1. `custom_nodes` 에 폴더를 넣고 **ComfyUI 재시작**
@@ -96,7 +111,7 @@ Ollama 쪽에서 `OLLAMA_HOST=0.0.0.0` 로 띄우세요.
 
 ---
 
-## 2. 노드 8개
+## 2. 노드 10개
 
 **Prompt Writer 하나만 있어도 돌아갑니다.** 나머지는 필요할 때 붙이세요.
 
@@ -106,7 +121,7 @@ Ollama 쪽에서 `OLLAMA_HOST=0.0.0.0` 로 띄우세요.
 |---|---|
 | 🎬 **MiniMax H3 Prompt Writer (Ollama)** | 메인. 자연어 → 규격 프롬프트. Director의 `external_prompt_overwrite` 로 직결 |
 | 🎬 **MiniMax H3 Shot Builder** | 샷 카드 편집기. 샷마다 내용·행위·추가 동작·전개·대사·카메라를 쌓아 브리프를 만들어 Writer 에 넘깁니다 |
-| 🎬 **MiniMax H3 Shot Settings** | 위 카드의 전역 설정 — 영상 길이, 전개(progression) 개수·시드·대상 |
+| 🎬 **MiniMax H3 Shot Settings** | 위 카드의 전역 설정 — 화풍·**테마(장르)**·영상 길이, 전개(progression) 개수·시드·대상, 대사 언어 |
 | 🎬 **MiniMax H3 Style Directive** | 스타일 프리셋의 영어 지시문을 텍스트로 꺼내기 |
 
 Shot Builder 는 브리프를 **자연어 한 줄로 못 쓰는 것**을 위해 있습니다 — 두 사람의
@@ -130,6 +145,21 @@ Shot Builder 는 브리프를 **자연어 한 줄로 못 쓰는 것**을 위해 
 > **Prompt Freeze 가 필요한 이유:** 시드를 고정해도 소용없습니다. 시드는 *무엇이 나오는지*
 > 를 정할 뿐이고, ComfyUI 노드 캐시는 메모리에만 있어서 재시작하면 사라집니다. 그러면
 > 같은 설정이어도 LLM 이 매번 처음부터 다시 돕니다.
+
+### 에셋 <sup>v2</sup>
+
+| 노드 | 하는 일 |
+|---|---|
+| 📚 **MiniMax H3 Asset Save** | 이미지를 이름 붙여 라이브러리에 저장합니다. 같은 이름으로 또 저장하면 파일이 덧붙고, 배치로 넣으면 `이름_00`, `이름_01` 로 갈립니다 |
+| 📚 **MiniMax H3 Asset Load** | 저장해 둔 에셋을 드롭다운에서 골라 꺼냅니다. `file_key` 를 비워 두면 역할 우선순위대로 알아서 고릅니다 |
+
+배우(actors) · 의상(costumes) · 장소(scenes) · 소품(props) · 레이아웃(layouts) ·
+목소리(voices) 여섯 종류입니다. 노드에 달린 **📚 버튼**을 누르면 전체 화면 관리
+패널이 열려서 이름 변경·삭제·폴더 열기를 할 수 있고, 바꾼 내용이 노드 드롭다운에
+바로 반영됩니다.
+
+배우 에셋은 그림이 여러 장일 때 `fullbody_threeview` → `bust_threeview` →
+`asset_sheet` → `master` 순으로 골라 씁니다 — 전신 삼면도가 있으면 그걸 먼저 씁니다.
 
 ---
 
@@ -334,6 +364,31 @@ Writer 쪽 IMAGE 입력은 연결할 필요 없습니다.
 
 ---
 
+## 4.2 테마 (장르) 16종 <sup>v2</sup>
+
+`mmh3/themes.json`. Shot Settings 에서 스타일 **바로 아래**에 있습니다.
+
+**스타일이 매체를, 테마가 장르를 정합니다.** 둘은 같이 씁니다 —
+`2D 재패니즈 애니` + `그라비아 화보` 는 애니 화보가 됩니다.
+
+| | | | |
+|---|---|---|---|
+| 그라비아 화보 | 감성 포트레이트 | 패션 룩북 | 시네마틱 드라마 |
+| 일상 | 브이로그 | 다큐멘터리 | 호러 / 서스펜스 |
+| 느와르 / 스릴러 | 액션 | 판타지 / 이세계 | 사이버펑크 네온 |
+| SF | 뮤직비디오 | 광고 / 제품 CF | 여행 필름 |
+
+기본값은 `없음` 입니다. 고르면 브리프 앞에 **장르 이름 한 줄**만 들어가고,
+조명·구도·의상·소품은 모델이 그 장르 지식대로 고릅니다.
+
+> 예전에는 장르마다 조명·구도·의상 표와 장면 예시 15개를 손으로 적어 넣었습니다.
+> 테스트해 보니 27B 모델이 그 표보다 훨씬 많이 알고 있었습니다 — 역광과 림라이트,
+> 프레임 인 프레임, 반사 구도, 렌즈와 조리개, 계절별 경향까지 스스로 말했고,
+> 장소·의상·빛이 서로 어울리는 컨셉도 한 번에 만들었습니다. **표는 그 지식을
+> 대체한 게 아니라 덮고 있었습니다.** 그래서 이름만 남겼습니다.
+
+---
+
 ## 4.5 REF2VA 6섹션 규격
 
 공식 `VIDEO_PROMPT_WRITING_GUIDE_ref_en.md` 를 따릅니다.
@@ -450,28 +505,35 @@ LLM은 규격을 반드시 흘립니다. `auto_fix` 는 **모델 호출과 무�
 
 ```
 ComfyUI-MinimaxH3-PromptDirector/
-├── __init__.py                 노드 등록 (8개)
+├── __init__.py                 노드 등록 (10개)
+├── routes.py                   ★ 에셋 라이브러리 HTTP 라우트
 ├── requirements.txt
-├── README.md  ·  LICENSE
+├── README.md  ·  CHANGELOG.md  ·  LICENSE
 ├── nodes/
 │   ├── prompt_writer.py        Prompt Writer · Validator · Image Describe · Style Directive
 │   ├── shot_builder.py         Shot Builder — 샷 카드를 브리프로
-│   ├── shot_settings.py        Shot Settings — 길이·전개 전역 설정
-│   ├── prompt_freeze.py        Prompt Freeze — 확정된 프롬프트 재사용
+│   ├── shot_settings.py        Shot Settings — 화풍·테마·길이·전개 전역 설정
+│   ├── prompt_freeze.py        Prompt Freeze — 확정된 프롬프트 재사용 + 편집
+│   ├── assets.py               ★ Asset Save / Asset Load
 │   └── kill_switch.py          Kill Switch — 전부 언로드
 ├── mmh3/
 │   ├── director_link.py        ★ Director 노드 상태(mode/duration/이미지) 읽기
 │   ├── guideline.py            가이드라인 → 시스템 프롬프트
-│   ├── shotcards.py            샷 카드 어휘 + 브리프 조립 (시점·카메라·레퍼런스 역할)
+│   ├── shotcards.py            샷 카드 어휘 + 브리프 조립 (시점·카메라·레퍼런스 역할·샷 연결)
 │   ├── acts.py                 ★ 자세 어휘 + 전개(progression)
 │   ├── shotlist.py             렌즈·조명·연기 톤 등 연출 어휘
+│   ├── library.py              ★ 에셋 저장소 (배우·의상·장소·소품·레이아웃·목소리)
 │   ├── roles.py  ·  genres.json
 │   ├── styles.json             ★ 스타일 12종 (여기를 고치면 됨)
 │   ├── styles.py               스타일 로더
-│   ├── vision.py               이미지 → 묘사
+│   ├── themes.json             ★ 테마(장르) 16종
+│   ├── themes.py               테마 로더
+│   ├── vision.py               이미지 → 묘사 (역할별로 물어볼 항목을 줄임)
 │   ├── ollama_client.py        Ollama HTTP + IMAGE→base64
-│   └── validator.py            규격 검사·자동수리
-├── web/                        Shot Builder · Prompt Freeze · picture_roles 의 UI
+│   └── validator.py            규격 검사·자동수리 + 대사 길이 검사
+├── web/                        Shot Builder · Prompt Freeze · picture_roles · 에셋 패널의 UI
+├── docs/
+│   └── AI_BRIEFING.md          다른 AI에게 Shot Builder 입력을 대신 설계시키는 문서
 └── example_workflows/
     └── mmh3_prompt_writer_example.json
 ```
@@ -494,3 +556,7 @@ ComfyUI-MinimaxH3-PromptDirector/
 | 대사가 멋대로 번역됨 | `dialogue_mode` 를 `verbatim` 으로 두고 `dialogue_text` 에 원문을 넣으세요 |
 | `[Japanese]` 태그인데 한국어가 나옴 | `auto` 모드는 모델이 대사를 지어내므로 작은 모델에선 언어가 흔들립니다. `report` 에 `dialogue language mismatch` 경고가 뜹니다. 확실하게 하려면 `verbatim` + `dialogue_text` 에 직접 입력 |
 | 컷이 너무 빨리 지나감 | `shot_count` 를 줄이거나 `duration` 을 늘리세요 |
+| 📚 버튼을 눌러도 패널이 안 열림 / 목록이 빔 <sup>v2</sup> | `routes.py` 는 ComfyUI 서버가 뜰 때 등록됩니다. 업데이트 후 **ComfyUI를 재시작**하고 브라우저를 새로고침(F5)하세요 |
+| Prompt Freeze 로 편집했는데 결과가 입력과 똑같음 <sup>v2</sup> | 경고로 알려줍니다. 요청이 너무 추상적이면 모델이 손을 못 댑니다 — 어느 샷의 무엇을 어떻게 바꿀지 지정하세요 |
+| 편집했더니 `summary` 만 바뀌고 샷 본문은 그대로 <sup>v2</sup> | 이것도 경고로 잡힙니다. `summary` 와 `retention_analysis` 는 본문을 **보고하는** 자리라, 본문이 안 바뀌면 바뀐 게 없는 것입니다 |
+| 대사가 뭉개져서 발음됨 <sup>v2</sup> | `report` 의 `[warn] 대사 길이` 를 보세요. 일본어·한국어는 초당 4.5자가 한계입니다 — 대사를 줄이거나 `duration` 을 늘리세요 |
