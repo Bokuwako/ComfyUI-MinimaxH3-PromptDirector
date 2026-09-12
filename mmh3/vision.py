@@ -81,11 +81,47 @@ UNUSUAL: anything present that the headings above did not cover.
 """
 
 
-def question(index, total):
-    if total <= 1:
-        return "Inventory this picture."
-    return ("Inventory picture {} of {}. Describe ONLY this picture. Do not mention or "
+# 어떤 역할의 그림에는 애초에 물어볼 이유가 없는 항목이 있습니다. 배경 사진에 대고
+# PEOPLE / CLOTHING / GAZE / EXPRESSION / PHYSIQUE / BODY 를 물으면 여섯 줄이 전부
+# "not visible" 로 돌아옵니다 — 실측 한 번에 그 여섯 줄이 그대로 나왔고, 그 인벤토리가
+# 작성 패스로 넘어가 컨텍스트를 밀어냈습니다.
+#
+# 그래서 역할이 정해진 그림은 물어볼 항목만 남깁니다. 여기 없는 역할과 역할이 비어
+# 있는 그림은 예전처럼 전체를 묻습니다 — 모르면 다 보는 쪽이 안전합니다.
+#
+# 키는 shotcards.REF_ROLE 의 것을 그대로 씁니다. roles.py 의 어휘와는 따로입니다
+# (roles.py 는 breasts·pov_self 같은 키를 모릅니다).
+_ALL_HEADINGS = ("MEDIUM", "SETTING", "LIGHT", "FRAMING", "LAYERS", "PEOPLE", "CLOTHING",
+                 "GAZE", "EXPRESSION", "PHYSIQUE", "BODY", "OBJECTS", "TEXT AND UI",
+                 "SURFACE", "UNUSUAL")
+
+ROLE_HEADINGS = {
+    "background": ("MEDIUM", "SETTING", "LIGHT", "FRAMING", "LAYERS", "OBJECTS",
+                   "TEXT AND UI", "SURFACE", "UNUSUAL"),
+    "prop":       ("MEDIUM", "LIGHT", "OBJECTS", "TEXT AND UI", "SURFACE", "UNUSUAL"),
+    "style":      ("MEDIUM", "LIGHT", "SURFACE", "UNUSUAL"),
+    "face":       ("MEDIUM", "PEOPLE", "GAZE", "EXPRESSION", "SURFACE", "UNUSUAL"),
+    "expression": ("MEDIUM", "PEOPLE", "GAZE", "EXPRESSION", "UNUSUAL"),
+    "outfit":     ("MEDIUM", "PEOPLE", "CLOTHING", "SURFACE", "UNUSUAL"),
+    "pose":       ("MEDIUM", "FRAMING", "PHYSIQUE", "BODY", "UNUSUAL"),
+    "breasts":    ("MEDIUM", "PHYSIQUE", "SURFACE", "UNUSUAL"),
+    "genitals":   ("MEDIUM", "PHYSIQUE", "SURFACE", "UNUSUAL"),
+}
+
+
+def question(index, total, role=""):
+    """The per-picture instruction. `role` is a shotcards.REF_ROLE key, or "" for all."""
+    head = ("Inventory this picture." if total <= 1 else
+            "Inventory picture {} of {}. Describe ONLY this picture. Do not mention or "
             "borrow anything from the other pictures.".format(index, total))
+    wanted = ROLE_HEADINGS.get((role or "").strip())
+    if not wanted:
+        return head
+    # "쓰되 not visible 이라고 답하라" 가 아니라 "줄 자체를 쓰지 마라" 여야 줄어듭니다.
+    return ("{} This picture is a {} reference and is used for nothing else. Answer ONLY "
+            "these headings: {}. OMIT every other heading COMPLETELY — do not write it, "
+            "not even to say \"not visible\".".format(
+                head, (role or "").replace("_", " ").upper(), ", ".join(wanted)))
 
 
 def build_note(descriptions, mode):

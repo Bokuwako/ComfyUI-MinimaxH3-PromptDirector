@@ -447,6 +447,65 @@ def _fmt_at(sec):
     return str(int(f)) if f == int(f) else ("%g" % f)
 
 
+# 컷 뒤의 샷이 앞 샷과 어떤 관계인가. 예전에는 한 가지뿐이었습니다 — "같은 장소,
+# 같은 인물, 같은 의상, 같은 조명. 동작은 끊기지 않고 이어진다." 그래서 두 경우가
+# 다 틀린 말을 받았습니다:
+#
+#   * 카메라만 바꾸고 싶은데 자세를 잠가 주지 않아, 행위 줄을 손으로 다시 고르지
+#     않으면 자세 문장이 통째로 빠졌습니다. 배경도 모델 자유였고요.
+#   * 회상이나 장소 이동인데 "같은 장소" 라고 우겼습니다.
+#
+# 그리고 배경이 컷마다 바뀌는 진짜 이유가 여기 있었습니다. 시스템 프롬프트의
+# CONTINUITY 블록은 "브리프가 준 것을 옮겨라" 라고만 하고, "샷 1에서 네가 지어낸
+# 것도 지켜라" 라는 말이 어디에도 없습니다. 브리프가 장소를 안 주면 모델은 샷 1에서
+# 자유롭게 창문을 만들고, 샷 2에서 또 자유롭게 만듭니다 — 각 샷에서는 규칙을 어긴
+# 적이 없습니다. 그 구속을 여기, 샷 내용 바로 옆에 답니다. 46,000자 시스템 프롬프트
+# 안의 같은 규칙은 이미 여러 번 졌습니다.
+SHOT_LINK = [
+    ("same_moment", "같은 순간 — 카메라만 바뀜",
+     "장소·인물·의상·조명에 더해 자세와 동작까지 그대로입니다. 행위와 내용을 앞 "
+     "샷에서 그대로 물려받습니다. 정면에서 후면으로 돌 때처럼 카메라만 바꾸는 컷."),
+    ("", "이어지는 동작 (기본)",
+     "장소·인물·의상·조명은 같고, 동작은 앞 샷에서 이어서 진행됩니다."),
+    ("new_scene", "새 장면 — 장소/시간이 바뀜",
+     "앞 샷의 장소와 조명을 이어받지 않습니다. 인물의 외형과 의상은 유지됩니다. "
+     "회상이나 장소 이동에 씁니다."),
+]
+
+SHOT_LINK_LABELS = [row[1] for row in SHOT_LINK]
+_LINK_BY_LABEL = {row[1]: row[0] for row in SHOT_LINK}
+
+
+def link_key(label):
+    """드롭다운 라벨 -> 키. 못 알아보면 기본값(이어지는 동작)."""
+    return _LINK_BY_LABEL.get(label, "")
+
+
+def is_same_moment(card):
+    """이 카드가 앞 샷에서 행위·내용을 물려받는가."""
+    return (card or {}).get("link") == "same_moment"
+
+
+def continuity_line(card, n):
+    """샷 n 이 앞 샷과 어떻게 이어지는지. n 은 1부터."""
+    prev = n - 1
+    link = (card or {}).get("link") or ""
+    if link == "same_moment":
+        return ("유지: 이 샷은 샷 {}과 같은 순간이 이어지는 것이다. 장소·인물·의상·"
+                "조명은 물론 자세와 누가 무엇을 하고 있는지까지 전부 샷 {}과 같다. "
+                "샷 {}에 쓴 장소 묘사를 같은 단어로 그대로 다시 써라 — 브리프에 없던 "
+                "것을 샷 {}에서 네가 정했다면 그것도 이 영상의 사실이고, 네가 지어낸 "
+                "것이라고 해서 바꿔도 되는 것이 아니다. 이 샷에서 바뀌는 것은 카메라 "
+                "하나뿐이다.".format(prev, prev, prev, prev))
+    if link == "new_scene":
+        return ("전환: 이 샷은 샷 {}과 다른 장소이거나 다른 시간이다. 앞 샷의 장소와 "
+                "조명을 이어받지 마라. 다만 인물의 외형과 의상은 그대로 유지하고, 이 "
+                "샷에서도 다시 적어라.".format(prev))
+    return ("유지: 샷 {}과 같은 장소, 같은 인물, 같은 의상, 같은 조명이다. "
+            "장소와 인물 외형을 이 샷에서도 다시 적어라. "
+            "동작은 끊기지 않고 이어진다.".format(prev))
+
+
 def camera_sentence(card, who, frame_anchored=False):
     """This card's camera as explicit instructions.
 
@@ -578,6 +637,23 @@ def build(cards, subjects_text="", refs=None, language="Korean",
     axes = {}
     seen_vp = []
 
+    # '같은 순간' 샷은 행위와 내용을 앞 샷에서 물려받습니다. 여기서 한 번 채워 두면
+    # 아래의 모든 블록(행위·내용·전개·리포트)이 같은 값을 봅니다 — 카드마다 따로
+    # 챙기면 한 군데를 빠뜨리게 되고, 실제로 행위 줄을 다시 고르지 않아 자세 문장이
+    # 통째로 빠지는 일이 있었습니다. 원본 리스트는 건드리지 않습니다.
+    cards = [dict(c) if isinstance(c, dict) else {} for c in (cards or [])]
+    for i in range(1, len(cards)):
+        if is_same_moment(cards[i]):
+            cards[i]["acts"] = cards[i - 1].get("acts") or []
+            cards[i]["text"] = cards[i - 1].get("text") or ""
+            # 추가 동작과 대사는 물려받지 않습니다. 같은 순간이라도 이 샷에서만
+            # 보여주고 싶은 것이 있을 수 있고, 대사를 복제하면 같은 말이 두 번 나갑니다.
+    if cards and is_same_moment(cards[0]):
+        cards[0] = dict(cards[0])
+        cards[0]["link"] = ""          # 첫 샷은 이어받을 앞 샷이 없습니다
+        problems.append("샷 1: '같은 순간' 은 앞 샷이 있어야 합니다 — 기본값으로 "
+                        "처리했습니다.")
+
     rb, raxes = refs_block(refs, cards)
     anchored = bool(raxes.get("frame_anchor"))
     if rb:
@@ -694,9 +770,7 @@ def build(cards, subjects_text="", refs=None, language="Korean",
                        "있는지만 적고, 어떻게 잡혔는지는 적지 마라.")
 
         if n > 1:
-            out.append("유지: 샷 {}과 같은 장소, 같은 인물, 같은 의상, 같은 조명이다. "
-                       "장소와 인물 외형을 이 샷에서도 다시 적어라. "
-                       "동작은 끊기지 않고 이어진다.".format(n - 1))
+            out.append(continuity_line(c, n))
 
         vp = c.get("viewpoint") or ""
         if vp:

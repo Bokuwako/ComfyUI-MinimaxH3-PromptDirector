@@ -11,7 +11,6 @@
     "music": "instrumentation tendency for non_diegetic_music",
     "avoid": "things that break this style"
   },
-
   "auto": {
     "label": "00. Auto (자연어에서 스타일 자동 판별)",
     "style_line": "",
@@ -23,7 +22,6 @@
     "music": "",
     "avoid": ""
   },
-
   "live_action_cinematic": {
     "label": "01. 실사 - Live-action Cinematic",
     "style_line": "Live-action, cinematic",
@@ -35,7 +33,6 @@
     "music": "sparse acoustic or orchestral instrumentation, restrained dynamics",
     "avoid": "cel shading, outlines, exaggerated squash-and-stretch, plastic skin, illustration flatness"
   },
-
   "semi_realistic": {
     "label": "02. 반실사 - Semi-realistic / Stylized Realism",
     "style_line": "Semi-realistic stylized render, cinematic",
@@ -47,7 +44,6 @@
     "music": "hybrid orchestral and synth textures at a moderate tempo",
     "avoid": "photographic skin blemishes, documentary handheld noise, flat 2D shading, cartoon outlines"
   },
-
   "cg_3d_animation": {
     "label": "03. 3D CG 애니메이션 - 3D CG / Feature Animation",
     "style_line": "3D CG animation, feature-animation look",
@@ -59,7 +55,6 @@
     "music": "orchestral with playful woodwinds and percussion, clear dynamic build",
     "avoid": "photoreal pores, film grain, cel-shaded flat fills, hand-drawn linework"
   },
-
   "anime_2d": {
     "label": "04. 2D 재패니즈 애니 - 2D Japanese Cel Animation",
     "style_line": "2D Japanese cel animation, anime",
@@ -71,7 +66,6 @@
     "music": "piano, strings and light band instrumentation, or bright synth for energetic scenes",
     "avoid": "photoreal texture, 3D shading gradients, depth-of-field blur across the whole frame, realistic skin pores"
   },
-
   "stop_motion_clay": {
     "label": "05. 클레이·스톱모션 - Claymation / Stop-motion",
     "style_line": "Claymation stop-motion",
@@ -83,7 +77,6 @@
     "music": "ukulele, pizzicato strings, toy piano and light hand percussion",
     "avoid": "perfectly smooth interpolation, digital gloss, photoreal human skin, motion blur"
   },
-
   "vintage_film_doc": {
     "label": "06. 빈티지 필름·다큐 - Vintage Film / Documentary",
     "style_line": "Vintage film, 16mm documentary look",
@@ -95,7 +88,6 @@
     "music": "N/A by default, or a single sparse acoustic instrument",
     "avoid": "clean digital sharpness, perfect stabilization, colour-graded gloss, animated shading"
   },
-
   "watercolor_ink": {
     "label": "07. 수채화·잉크 - Watercolour / Ink Illustration",
     "style_line": "Watercolour and ink illustration, animated",
@@ -107,7 +99,6 @@
     "music": "solo piano or harp with wide spacing at a slow tempo",
     "avoid": "hard digital edges, photoreal texture, glossy specular highlights, dense full-frame colour"
   },
-
   "pixel_retro_game": {
     "label": "08. 픽셀아트·레트로 게임 - Pixel Art / Retro Game",
     "style_line": "Pixel art, 16-bit retro game look",
@@ -119,31 +110,6 @@
     "music": "chiptune with square lead, triangle bass and noise percussion at a driving tempo",
     "avoid": "smooth anti-aliased edges, gradients outside the palette, motion blur, photoreal detail"
   },
-
-  "commercial_product": {
-    "label": "09. 광고·제품 CF - Commercial / Product Film",
-    "style_line": "High-end commercial product film, live-action",
-    "render": "immaculate surfaces, controlled specular reflections, crisp edge definition, macro-level material detail, seamless gradient backdrop or minimal styled set, high dynamic range with clean whites",
-    "lighting": "large soft sources with precise negative fill, sculpted highlight lines along product edges, no unmotivated spill",
-    "camera": "prefers slow Arc Shot around the product, Push In with small amplitude at slow speed, Zoom In on detail, and precise Static Shot for the hero hold",
-    "motion": "smooth mechanically precise moves, slow-motion pours and impacts, elements assembling with exact timing",
-    "soundscape": "hyper-detailed close foley — a single click, a liquid pour, fabric release — over near-silent ambience",
-    "music": "clean electronic pulse with a rising build and a decisive final hit",
-    "avoid": "handheld shake, dust and wear on the product, cluttered backgrounds, film grain"
-  },
-
-  "music_video_neon": {
-    "label": "10. 뮤직비디오·네온 사이버펑크 - Music Video / Neon Cyberpunk",
-    "style_line": "Music-video look, neon cyberpunk, cinematic",
-    "render": "saturated magenta and cyan colour separation, wet reflective surfaces doubling every light source, volumetric haze, anamorphic lens flares, strong bloom, deep crushed blacks",
-    "lighting": "practical neon signage as the key light, hard coloured rim from behind, strobing and pulsing sources",
-    "camera": "prefers Tracking Shot, Roll Clockwise / Roll Counterclockwise, Arc Shot and Shake Strongly, often with large amplitude at fast speed",
-    "motion": "rhythmic movement cut to the beat, speed ramps, sudden freezes into motion",
-    "soundscape": "rain on wet asphalt, distant city hum, electrical buzz from signage, passing vehicles",
-    "music": "synthwave with a driving drum machine, deep bass and a filtered rising build",
-    "avoid": "flat daylight, pastel palettes, static locked-off framing, documentary neutrality"
-  },
-
   "webtoon_cartoon": {
     "label": "11. 웹툰·카툰 - Webtoon / Western Cartoon",
     "style_line": "Webtoon-style 2D cartoon animation",
@@ -155,7 +121,6 @@
     "music": "bouncy ukulele, marimba and light percussion at a brisk tempo",
     "avoid": "realistic proportions, soft gradients, film grain, photoreal lighting"
   },
-
   "miniature_tiltshift": {
     "label": "12. 미니어처·틸트시프트 - Miniature / Tilt-shift",
     "style_line": "Live-action tilt-shift miniature look",

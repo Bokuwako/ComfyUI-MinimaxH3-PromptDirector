@@ -16,9 +16,9 @@ Everything per-shot lives on the cards.
 import json
 
 try:
-    from ..mmh3 import acts, guideline, shotcards, shotlist, styles, validator
+    from ..mmh3 import acts, guideline, shotcards, shotlist, styles, themes, validator
 except ImportError:  # direct import during tests
-    from mmh3 import acts, guideline, shotcards, shotlist, styles, validator
+    from mmh3 import acts, guideline, shotcards, shotlist, styles, themes, validator
 
 CATEGORY = "MiniMax H3/Prompt"
 
@@ -38,6 +38,9 @@ try:
             "shot_type": rows(shotcards.SHOT_TYPE), "motion": rows(shotcards.MOTION),
             "amp": rows(shotcards.AMPLITUDE), "speed": rows(shotcards.SPEED),
             "transition": rows(shotcards.TRANSITION),
+            # SHOT_LINK 은 영어 문장이 없는 3열 표라 rows() 를 못 씁니다.
+            "shot_link": [{"key": k, "ko": ko, "tip": tip}
+                          for k, ko, tip in shotcards.SHOT_LINK],
             "ref_role": rows(shotcards.REF_ROLE),
             "act": acts.rows(acts.ACTS), "act_pos": acts.rows(acts.POSITION),
             "mover": acts.rows(acts.MOVER),
@@ -51,6 +54,7 @@ DEFAULT_SETTINGS = {
     "include_soundscape": True, "include_music": True,
     "must_not": "", "must_happen": "",
     "progression": "끄기", "progression_seed": 0, "progression_target": "",
+    "theme": "",
 }
 
 PROGRESSION = {"끄기": 0, "1회": 1, "2회": 2}
@@ -71,6 +75,13 @@ DEFAULT_SHOTS = json.dumps({"version": 1, "shots": [
      "facing": "", "shot_type": "", "motion": "", "amp": "", "speed": "",
      "at": None, "transition": "cut", "acts": [], "lines": []}
 ], "refs": [{"n": i, "role": ""} for i in range(1, 4)]}, ensure_ascii=False)
+
+
+def _seconds_int(v):
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _lines(text):
@@ -132,8 +143,12 @@ class MMH3_ShotBuilder:
     @staticmethod
     def compose(cards, refs, must_not="", dialogue_mode="", language="Korean",
                 must_happen="", progression="끄기", progression_seed=0,
-                duration=0.0, progression_target=""):
+                duration=0.0, progression_target="", theme=""):
         parts = []
+        tb = themes.block(theme)
+        if tb:
+            parts.append(tb)
+        MMH3_ShotBuilder._last_theme = theme
         body, axes, problems = shotcards.build(
             cards, refs=refs, language=language,
             progression=PROGRESSION.get(progression, 0),
@@ -226,7 +241,7 @@ class MMH3_ShotBuilder:
         return "\n".join(rows + tail)
 
     @staticmethod
-    def build_spec(axes, cards, **kw):
+    def build_spec(axes, cards, refs=None, **kw):
         choices = {
             "shot_size": "", "camera_angle": "", "camera_mount": "",
             "lens": kw.get("lens", ""), "depth_of_field": kw.get("depth_of_field", ""),
@@ -239,6 +254,16 @@ class MMH3_ShotBuilder:
         return {
             "shot_choices": choices,
             "style": kw.get("style", ""), "custom_style": "", "register": "",
+            # `picture_roles` 는 Shot Builder 를 안 쓸 때 Writer 에 직접 적는 칸이라
+            # 비워 둡니다 — 여기서 채우면 shotcards 가 이미 브리프에 쓴 역할 문단과
+            # roles.py 가 만드는 계약문이 겹쳐서 같은 말이 두 번 나갑니다.
+            #
+            # 대신 역할 키를 그대로 실어 보냅니다. 비전 패스가 이걸 보고 그림마다
+            # 물어볼 항목을 줄이고, 리포트도 역할이 선언됐다는 걸 알 수 있습니다.
+            # 예전에는 이 경로가 없어서, 카드에 역할을 다 골라 놔도 리포트가
+            # "picture roles: none declared" 라고 했습니다.
+            "ref_roles": [{"n": int(r.get("n") or 0), "role": (r.get("role") or "")}
+                          for r in (refs or []) if (r.get("role") or "")],
             "picture_roles": "", "extra_directives": "",
             # Lines typed on the cards are quotes, not a suggestion: switch the writer
             # to verbatim so it copies them instead of inventing its own.
@@ -257,6 +282,10 @@ class MMH3_ShotBuilder:
             brief, shot_labels=spec["shot_choices"])[1])
         used = [r for r in refs if (r.get("role") or "")]
         rows = ["샷 {}개 · 레퍼런스 {}장 지정".format(len(cards), len(used))]
+
+        th = getattr(cls, "_last_theme", "")
+        if th:
+            rows[0] += " · 테마 {}".format(th)
 
         # 무엇을 넘겼는지 눈으로 확인할 수 있어야 합니다. 행위의 참가자가 비어 있으면
         # 브리프에 신원 없는 <사람 A>/<사람 B> 가 나가고 모델이 순번대로 배정하는데,
@@ -334,12 +363,13 @@ class MMH3_ShotBuilder:
         must_not = cfg.get("must_not", "")
         brief, axes, problems = self.compose(
             cards, refs, must_not=must_not, dialogue_mode=cfg.get("dialogue_mode", ""),
+            theme=cfg.get("theme", ""),
             language=cfg.get("dialogue_language", "Korean"),
             must_happen=cfg.get("must_happen", ""),
             progression=cfg.get("progression", "끄기"),
             progression_seed=cfg.get("progression_seed", 0),
             progression_target=cfg.get("progression_target", ""))
-        spec = self.build_spec(axes, cards, **cfg)
+        spec = self.build_spec(axes, cards, refs=refs, **cfg)
         report = self.diagnose(brief, spec, cards, refs, errs + problems,
                                must_not, cfg.get("must_happen", ""))
         return (brief, json.dumps(spec, ensure_ascii=False), report)

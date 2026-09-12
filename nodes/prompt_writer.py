@@ -237,6 +237,7 @@ class MMH3_OllamaPromptWriter:
 
         # ---- unpack the composer's spec over the authoring defaults
         spec_note = ""
+        self._ref_roles = {}
         if isinstance(spec, str) and spec.strip():
             try:
                 _s = json.loads(spec)
@@ -257,6 +258,13 @@ class MMH3_OllamaPromptWriter:
             custom_style = _s.get("custom_style", custom_style)
             register = _s.get("register", register)
             picture_roles = _s.get("picture_roles", picture_roles)
+            # Shot Builder 는 역할 문단을 브리프에 직접 쓰기 때문에 picture_roles 는
+            # 비워서 보냅니다. 역할 자체는 이쪽으로 옵니다 — 비전 패스가 그림마다
+            # 물어볼 항목을 줄이는 데 씁니다.
+            _rr = _s.get("ref_roles")
+            if isinstance(_rr, list):
+                self._ref_roles = {int(r.get("n") or 0): (r.get("role") or "")
+                                   for r in _rr if isinstance(r, dict)}
             extra_directives = _s.get("extra_directives", extra_directives)
             dialogue_mode = _s.get("dialogue_mode", dialogue_mode)
             dialogue_language = _s.get("dialogue_language", dialogue_language)
@@ -416,6 +424,10 @@ class MMH3_OllamaPromptWriter:
         line = roles.summary_line(parsed_roles, role_problems)
         if line:
             notes.extend(line.splitlines())
+        elif images and getattr(self, "_ref_roles", None):
+            _named = ", ".join("{}={}".format(n, r)
+                               for n, r in sorted(self._ref_roles.items()) if r)
+            notes.append("picture roles: {} (샷 카드에서 지정됨)".format(_named))
         elif images:
             notes.append("picture roles: none declared — the model decides what each "
                          "image is for")
@@ -461,7 +473,8 @@ class MMH3_OllamaPromptWriter:
                         base_url=ollama_url,
                         model=(vis_model if vis_split else model_name),
                         system=vision.INVENTORY_SYSTEM,
-                        user=vision.question(i, len(vision_images)),
+                        user=vision.question(i, len(vision_images),
+                                            (getattr(self, '_ref_roles', None) or {}).get(i, '')),
                         images=[img],
                         options={"temperature": 0.1,
                                  "num_ctx": _safe_int(num_ctx, 8192),
@@ -643,6 +656,14 @@ class MMH3_OllamaPromptWriter:
         # ---- contradictions the spec forbids
         for problem in validator.check_structure(clean):
             notes.append("[warn] structure: " + problem)
+
+        # ---- do the lines fit in the running time? 넘치면 모델이 음절을 삼킵니다.
+        for problem in validator.check_dialogue_rate(clean, duration):
+            notes.append("[warn] 대사 길이: " + problem)
+
+        # ---- 사건 순서가 시각으로 박혀 있는가, 상대 표현뿐인가
+        for problem in validator.check_event_order(clean):
+            notes.append("[warn] 사건 순서: " + problem)
 
         # ---- is the camera described with the spec's vocabulary, or by analogy?
         for problem in validator.check_camera_vocabulary(clean):

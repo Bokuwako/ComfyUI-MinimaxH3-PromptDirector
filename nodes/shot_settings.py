@@ -11,13 +11,19 @@ node holds the plain dropdowns and text boxes, Shot Builder holds only the canva
 import json
 
 try:
-    from ..mmh3 import shotcards, shotlist, styles
+    from ..mmh3 import shotcards, shotlist, styles, themes
 except ImportError:  # direct import during tests
-    from mmh3 import shotcards, shotlist, styles
+    from mmh3 import shotcards, shotlist, styles, themes
 
 CATEGORY = "MiniMax H3/Prompt"
 
 DIALOGUE_MODE = {"auto — 브리프에서 판단": "auto", "대사 없음": "none", "대사 있음": "speech"}
+
+# 대사 언어. 값이 그대로 규격의 <d>[언어] ...</d> 와 시스템 프롬프트로 나가므로
+# 한글 라벨을 쓰지 않고 영어 이름을 그대로 씁니다 — 라벨과 값을 갈라 놓으면
+# 매핑을 한 군데 빠뜨렸을 때 조용히 엉뚱한 언어가 나갑니다. 저장된 워크플로우가
+# 이미 "Japanese" 같은 값을 들고 있어서, 그 값이 그대로 살아남기도 합니다.
+DIALOGUE_LANGUAGES = ["Korean", "Japanese", "Chinese", "English"]
 
 
 class MMH3_ShotSettings:
@@ -38,6 +44,14 @@ class MMH3_ShotSettings:
                     "default": styles.style_labels()[0],
                     "tooltip": "영상 전체의 화풍. [샷 1] 스타일 문장이 여기서 나옵니다.",
                 }),
+                # 스타일 바로 아래에 둡니다 — 둘이 한 쌍으로 읽히기 때문입니다.
+                # 스타일이 매체를, 테마가 장르를 정하고, 고를 때도 같이 봅니다.
+                "theme": (themes.labels(), {
+                    "tooltip": "장르입니다. 화풍(style)이 매체를 정하고 이쪽이 장르를 "
+                               "정합니다 — '2D 애니' + '그라비아 화보' 는 애니 화보가 "
+                               "됩니다. 브리프 앞에 장르 이름 한 줄이 들어가고, 조명·"
+                               "구도·의상은 모델이 그 장르 지식대로 고릅니다.",
+                }),
                 "lens": (sl(shotlist.LENS), {
                     "default": sl(shotlist.LENS)[0],
                     "tooltip": "초점거리. 광각은 원근이 과장되고, 망원은 배경이 납작해집니다.",
@@ -54,8 +68,8 @@ class MMH3_ShotSettings:
                     "default": list(DIALOGUE_MODE)[0],
                     "tooltip": "'대사 없음' 을 고르면 말소리를 넣지 말라는 지시가 들어갑니다.",
                 }),
-                "dialogue_language": ("STRING", {
-                    "default": "Korean",
+                "dialogue_language": (DIALOGUE_LANGUAGES, {
+                    "default": DIALOGUE_LANGUAGES[0],
                     "tooltip": "영상에서 실제로 들릴 대사의 언어입니다. 카드에 다른 언어로 써도 "
                                "이 언어로 번역되어 <d>[언어] ...</d> 안에 들어갑니다.",
                 }),
@@ -108,5 +122,5 @@ class MMH3_ShotSettings:
             "style", "lens", "depth_of_field", "lighting_key", "dialogue_mode",
             "dialogue_language", "include_soundscape", "include_music",
             "must_not", "must_happen", "progression", "progression_seed",
-            "progression_target")},
+            "progression_target", "theme")},
             ensure_ascii=False),)

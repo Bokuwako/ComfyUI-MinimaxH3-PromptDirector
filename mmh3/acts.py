@@ -31,11 +31,39 @@ ACTS = [
     ("", "지정 안 함", "이 줄의 행위를 지정하지 않습니다.", "", "", "", ""),
 
     # ---------------------------------------------------------------- 삽입 · 정면
-    ("missionary", "정상위",
-     "받는 쪽이 등을 대고 눕고, 하는 쪽이 위에서 아래로.",
+    ("missionary", "정상위 (다리 펴고)",
+     "받는 쪽이 다리를 편 채 눕고, 하는 쪽이 그 위에 몸을 겹쳐 앞뒤로.",
+     # "downward" 는 수직 피스톤으로 읽혀서 밀어 누르는 동작이 나왔습니다. 정상위의
+     # 골반은 몸의 길이 방향으로 앞뒤로 움직입니다. 같은 파일의 lotus·wall·doggy 가
+     # 이미 "back and forth" 를 쓰고 있어 정상위만 혼자 수직이었습니다. 축을 몸 기준
+     # 으로 명시합니다 — 파일 머리의 "방향은 몸의 축 기준" 원칙 그대로입니다.
      "Missionary. {A} lies face up with legs apart. {B} lies over {A} between {A}'s "
-     "spread legs, chest to chest, and thrusts downward into {A}. {A} stays lying "
-     "beneath {B}.",
+     "spread legs, chest to chest and hips to hips, and thrusts into {A}, {B}'s hips "
+     "driving forward and back along the line of {A}'s body. {A} stays lying beneath {B}.",
+     "받는 쪽", "하는 쪽", "b"),
+    # 위 항목은 다리를 편 채 몸이 완전히 포개진 형태로 그려집니다. 무릎 정보가 없어
+    # 두 몸이 평면으로 겹치고, 그러면 앞뒤로 움직일 공간이 없어 방향 문구가 살아도
+    # 수직 압박으로 나옵니다. 무릎을 세워 골반 사이에 공간을 주는 쪽을 따로 둡니다.
+    #
+    # "chest to chest" 는 빼면 안 됩니다. 한 번 빼고 체중 지지(팔뚝)로 대체했더니
+    # 하는 쪽이 팔뚝과 골반으로만 남아 화면에서 사라지고 받는 쪽만 나왔습니다.
+    # 두 몸이 닿는다는 진술이자 하는 쪽의 상체가 존재한다는 유일한 보증입니다.
+    # 받는 쪽의 자세 설명이 길어져 하는 쪽의 첫 등장이 뒤로 밀리는 것도 같은 결과를
+    # 냅니다 — 구도가 "누워 있는 한 사람" 으로 먼저 잡힙니다. 첫 문장은 짧게.
+    # 다리 기하를 절로 나눠 지정하면 안 됩니다. 공중에 뜬다 / 하는 쪽 양옆이다 /
+    # 무릎이 허리 높이다 / 허벅지가 옆구리에 닿는다 / 종아리가 뒤로 처진다 — 이렇게
+    # 다섯 개를 걸었더니 모델이 그중 하나만 집었습니다. 같은 파일 lotus 가 쓰는
+    # "legs around {B}'s waist" 가 그 다섯 개를 한 덩어리로 이미 담고 있습니다.
+    # 아는 이름을 부르는 쪽이 기하를 받아쓰는 쪽보다 항상 낫습니다.
+    #
+    # "chest to chest" 는 상체만 보장합니다. 이것만 두면 골반 사이가 벌어진 채로
+    # 그려집니다. 접촉면마다 따로 말해야 하므로 같은 구문을 이어 붙입니다.
+    ("missionary_knees", "정상위 (다리 올림)",
+     "받는 쪽이 다리를 들어 하는 쪽의 허리에 감고, 그 사이에서 앞뒤로.",
+     "Missionary, legs raised. {A} lies face up beneath {B} with {A}'s legs raised and "
+     "wrapped around {B}'s waist. {B} lies over {A} between {A}'s thighs, chest to "
+     "chest and hips to hips, and thrusts into {A}, {B}'s hips driving forward and "
+     "back along the line of {A}'s body. {A} stays lying beneath {B}.",
      "받는 쪽", "하는 쪽", "b"),
     ("mating_press", "굴곡위",
      "받는 쪽의 다리를 접어 올린 채 위에서 가파르게.",
@@ -58,8 +86,9 @@ ACTS = [
      "위에 앉는 쪽", "아래 앉는 쪽", "a"),
     ("standing_front", "대면 입위",
      "서서 마주 본 채로.",
-     "Standing, facing. {A} and {B} stand chest to chest, {A} with one leg raised and "
-     "held by {B}. {B} thrusts upward into {A}. {A} stays standing and holds onto {B}.",
+     "Standing, facing. {A} and {B} stand chest to chest and hips to hips, {A} with one "
+     "leg raised and held by {B}. {B} thrusts upward into {A}. {A} stays standing and "
+     "holds onto {B}.",
      "받는 쪽", "하는 쪽", "b"),
     ("carry", "배면 안고 서서",
      "하는 쪽이 받는 쪽을 뒤에서 안아 든 채로. 받는 쪽은 등을 맡기고 매달려 있다.",
@@ -71,20 +100,23 @@ ACTS = [
      "안기는 쪽", "안는 쪽", "b"),
     ("carry_front", "대면 안고 서서",
      "하는 쪽이 받는 쪽을 마주 본 채로 안아 든다. 받는 쪽이 다리와 팔로 매달린다.",
+     # "{A}'s back is turned away from {B}" 를 지웠습니다. 마주 보고 안겨 있으면 등이
+     # 반대쪽인 건 당연해서 정보가 없는데, 아래 '방향은 렌더링 지시가 아니다' 문단이
+     # 경고하는 바로 그 형태라 뒷모습으로 그려질 위험만 있었습니다.
      "Standing carry, face to face. {B} stands upright and holds {A} up by the backs "
-     "of {A}'s thighs. {A} faces {B}, chest against {B}'s chest, {A}'s legs wrapped "
-     "around {B}'s waist and arms around {B}'s neck. {A}'s back is turned away from "
-     "{B}. {B} thrusts upward, lifting and dropping {A} onto {B}'s cock. {A} holds on "
-     "and does not thrust.",
+     "of {A}'s thighs. {A} faces {B}, chest to chest and hips to hips, {A}'s legs "
+     "wrapped around {B}'s waist and {A}'s arms around {B}'s neck. {B} thrusts upward, "
+     "lifting and dropping {A} onto {B}'s cock. {A} holds on and does not thrust.",
      "안기는 쪽", "안는 쪽", "b"),
     ("edge", "가장자리 걸치기",
      "받는 쪽이 침대·테이블 가장자리에 눕고 하는 쪽은 서서.",
-     "On the edge of the bed. {A} lies on {A}'s back with {A}'s hips right at the edge "
-     "of the surface, legs apart and hanging off, facing up toward {B}. {B} stands on "
-     "the floor directly between {A}'s spread legs, {B}'s hips pressed against {A}'s "
-     "hips, holding {A}'s thighs apart. {B}'s cock is inside {A} and {B} thrusts back "
-     "and forth, {B}'s hips driving forward into {A}. {A} stays lying back and does "
-     "not thrust; {A}'s hands and face are free.",
+     # 81단어에 하는 쪽이 30번째 단어에서야 나왔습니다 — 받는 쪽 혼자 그려지기 딱
+     # 좋은 조건입니다. "cock is inside" 는 "thrusts into" 와 중복이고, "facing up
+     # toward {B}" 와 "legs hanging off" 는 "hips at the edge" 에 이미 들어 있습니다.
+     "On the edge of the bed. {A} lies face up with {A}'s hips at the edge and {A}'s "
+     "legs apart. {B} stands on the floor between {A}'s legs, hips to hips, holding "
+     "{A}'s thighs apart, and thrusts into {A}, {B}'s hips driving forward and back "
+     "along the line of {A}'s body. {A} stays lying back; {A}'s hands and face are free.",
      "받는 쪽", "하는 쪽", "b"),
 
     # ---------------------------------------------------------------- 삽입 · 후면
@@ -96,14 +128,18 @@ ACTS = [
      "받는 쪽", "하는 쪽", "b"),
     ("prone", "엎드린 자세",
      "받는 쪽이 배를 깔고 완전히 엎드린 채로.",
-     "Prone. {A} lies flat face down with legs together. {B} lies over {A}'s back and "
-     "thrusts downward and forward into {A} from behind. {A} stays flat underneath {B}.",
+     # "downward and forward" 로 두 축을 동시에 걸면 모델은 하나만 집고, 집는 쪽은
+     # 늘 수직입니다. 정상위가 겪은 문제와 같은 종류라 doggy 의 표현으로 맞춥니다.
+     "Prone. {A} lies flat face down with legs together. {B} lies over {A}'s back, "
+     "{B}'s hips against {A}'s buttocks, and thrusts into {A} from behind, {B}'s hips "
+     "driving back and forth along the line of {A}'s spine. {A} stays flat underneath {B}.",
      "받는 쪽", "하는 쪽", "b"),
     ("spooning", "후면 측위",
      "둘 다 같은 방향으로 옆으로 누운 채로.",
      "Spooning. {A} and {B} both lie on their sides facing the same way, {B} behind "
-     "{A}, {B}'s chest against {A}'s back. {B} thrusts into {A} from behind "
-     "back and forth with shallow strokes. {A} stays curled on {A}'s side.",
+     "{A}, {B}'s chest against {A}'s back and {B}'s hips against {A}'s buttocks. "
+     "{B} thrusts into {A} from behind back and forth with shallow strokes. "
+     "{A} stays curled on {A}'s side.",
      "앞쪽 (받는 쪽)", "뒤쪽 (하는 쪽)", "b"),
     ("seated_behind", "후면 좌위",
      "받는 쪽이 하는 쪽의 무릎 위에 등을 보이고 앉는다.",
@@ -584,6 +620,35 @@ def act_block(card, label_fn, pov_target=None):
                 "같은 표현은 두 몸이 서로에 대해 어떻게 놓였는지를 말하는 것이지, "
                 "카메라가 어느 면을 보는지가 아니다. 무엇이 화면에 보이는지는 카메라 "
                 "지시만 정한다 — 몸의 방향에 맞춰 카메라를 옮기지 마라.")
+
+    # 두 사람 중 한쪽만 돌아가는 문제. 행위 문장은 한 사람을 절대 기준으로 두고
+    # (예: "{B} lies face up") 다른 사람을 그 사람 기준으로 적습니다 — 사슬입니다.
+    # 그런데 그 절대 기준이 위아래만 정하고 방 안에서 어느 쪽을 향해 누웠는지는
+    # 정하지 않아, 두 사람 덩어리 전체가 자유롭게 돌 수 있는 상태로 남습니다.
+    #
+    # 거기에 카메라 지시가 한 사람의 이름만 부르면("seen from behind <A>"), 모델은
+    # 덩어리를 돌리는 대신 이름이 불린 그 사람만 돌려서 지시를 만족시킵니다. 나머지
+    # 한 사람은 자기 문장이 따로 있어서 그대로 남고, 둘의 관계가 깨집니다.
+    #
+    # 카메라는 프레임 그 자체라 유일하게 회전할 수 없는 기준입니다. 두 사람을 서로가
+    # 아니라 카메라에 각각 매달면 자유 변수가 사라지고, 한쪽만 만만해지는 비대칭도
+    # 없어집니다. 기하는 모델이 풀 수 있습니다 — 적지 않아서 날아갔을 뿐입니다.
+    pair = [ln for ln in lines if not is_solo(ln["act"]) and ln["a"] and ln["b"]]
+    if pair and (card.get("facing") or card.get("angle")):
+        who = []
+        for ln in pair:
+            for t in (ln["a"], ln["b"]):
+                lab = "<{}>".format(label_fn(t))
+                if lab not in who:
+                    who.append(lab)
+        tail.append(
+            "카메라 지시는 사람을 돌리라는 뜻이 아니라 카메라가 어디에 서는지를 말하는 "
+            "것이다. 카메라 자리를 먼저 확정하고, 위 행위의 두 사람을 그 프레임 안에 "
+            "놓아라. 그리고 프롬프트 본문에 {} 이 각각 카메라에 대해 어느 쪽을 향하고 "
+            "있는지를 한 문장씩 따로 적어라 — 누가 렌즈를 보고, 누가 등을 보이고, 누가 "
+            "머리를 카메라 쪽에 두는지. 한 사람만 적고 나머지를 짐작에 맡기면, 적힌 "
+            "사람만 돌아가고 다른 사람은 원래 자세로 남아 둘의 관계가 깨진다."
+            .format(", ".join(who)))
     if any(ln["a_pos"] or ln["b_pos"] for ln in lines):
         tail.append("화면 위치는 이 샷의 프레임 기준이다.")
     # 자세 이름이 detailed_description 에서 통째로 사라지고 있었습니다 — "Reverse

@@ -101,6 +101,7 @@ const menuFor = f => rowsOf(f).map(r => ({ v: r.key, ko: r.ko, tip: r.tip }));
 function blankShot() {
   return { text: "", viewpoint: "", vp_target: "", size: "", angle: "", facing: "",
            shot_type: "", motion: "", amp: "", speed: "", at: null, transition: "cut",
+           link: "",
            extra: "", acts: [], lines: [] };
 }
 
@@ -402,6 +403,12 @@ class ShotCardsWidget {
         ctx.fillText(at, PAD + 52, y + 15);
         ctx.fillStyle = "#9aa0a6";
         ctx.fillText(labelOf("transition", s.transition || "cut"), PAD + 110, y + 15);
+        // 앞 샷과의 관계. '같은 순간' 은 행위·내용을 물려받으므로 눈에 띄어야 합니다.
+        const lk = s.link || "";
+        ctx.fillStyle = lk === "same_moment" ? "#7ee19d"
+                      : lk === "new_scene" ? "#f3c67a" : "#6b7280";
+        ctx.fillText(labelOf("shot_link", lk) || "이어지는 동작 (기본)",
+                     PAD + 190, y + 15);
       }
       if (shots.length > 1) {
         ctx.fillStyle = "#f44336aa"; ctx.font = "bold 13px 'Courier New',monospace";
@@ -439,7 +446,9 @@ class ShotCardsWidget {
         ctx.fillStyle = val ? "#dcdcdc" : "#555";
         ctx.fillText(clip(ctx, val || ph, W - PAD * 2 - 70), PAD + 62, byy + 14);
       };
-      drawBox(ty, "내용", "#8ecbff", s.text,
+      const inherit = i > 0 && s.link === "same_moment";
+      drawBox(ty, "내용", inherit ? "#7ee19d" : "#8ecbff",
+              inherit ? `↳ 샷 ${i} 에서 그대로 이어받음` : s.text,
               "클릭해서 장소·의상·표정·분위기를 한국어로 쓰세요");
       drawBox(ty + TEXT_ROW, "추가동작", "#ff9ec4", s.extra,
               "행위가 안 쓰는 부위로 할 동작 (손·팔·시선·표정 …)");
@@ -583,9 +592,12 @@ class ShotCardsWidget {
       if (cell.i > 0 && pos[0] > PAD + 48 && pos[0] < PAD + 104) {
         editInline(node, PAD + 48, this.last_y + cell.top + 3, 52, 16, s.at ?? "", false,
           v => { s.at = v.trim() === "" ? null : parseFloat(v); writeData(node, shots, refs); });
-      } else if (cell.i > 0 && pos[0] >= PAD + 104) {
+      } else if (cell.i > 0 && pos[0] >= PAD + 104 && pos[0] < PAD + 184) {
         loadVocab().then(() => menu(event, menuFor("transition"),
           v => { s.transition = v; writeData(node, shots, refs); }));
+      } else if (cell.i > 0 && pos[0] >= PAD + 184) {
+        loadVocab().then(() => menu(event, menuFor("shot_link"),
+          v => { s.link = v; writeData(node, shots, refs); }));
       }
       return true;
     }
@@ -606,6 +618,12 @@ class ShotCardsWidget {
     }
     const ty = this.last_y + cell.top + HEAD + ROW * 2;
 
+    // '같은 순간' 샷은 행위와 내용을 앞 샷에서 그대로 받습니다. 여기서 고치면
+    // 두 샷이 갈라져서, 카메라만 바꾸려던 것이 다른 장면이 됩니다.
+    if (shots[cell.i]?.link === "same_moment" && cell.i > 0 &&
+        (cell.zone === "text" || cell.zone === "actadd" || cell.zone === "actline")) {
+      return true;
+    }
     if (cell.zone === "actadd") {
       s.acts = actsOf(s).slice();
       // 참가자를 비운 채로 시작하면 브리프에 <사람 A>/<사람 B> 라는 신원 없는
@@ -740,6 +758,9 @@ class ShotCardsWidget {
         || "클릭해서 고르세요. ★ 첫 프레임을 고르면 그 이미지가 0초 프레임이 됩니다.");
     }
     if (cell.zone === "add") return "샷을 하나 더 추가합니다. 2번째부터 전환 시각이 생깁니다.";
+    if (cell.zone === "head" && cell.i > 0 && pos && pos[0] >= PAD + 184)
+      return "앞 샷과의 관계. '같은 순간' 은 장소·자세·동작까지 그대로 두고 카메라만 "
+           + "바꿉니다 (정면 → 후면). '새 장면' 은 장소·조명을 이어받지 않습니다.";
     const s = shots[cell.i];
     if (cell.zone === "head")
       return cell.i === 0 ? "첫 샷입니다. 전환 시각이 없습니다."
@@ -765,9 +786,13 @@ class ShotCardsWidget {
            + "dialogue_language 를 따릅니다.";
     }
     if (cell.zone === "dlgbar") return "";
-    if (cell.zone === "text")
+    if (cell.zone === "text") {
+      if (cell.i > 0 && shots[cell.i]?.link === "same_moment")
+        return "이 샷은 '같은 순간' 이라 내용과 행위를 앞 샷에서 그대로 받습니다. "
+             + "고치려면 샷 머리의 '같은 순간' 을 다른 값으로 바꾸세요.";
       return "장소·의상·표정·분위기. 이 칸은 행위·카메라보다 우선합니다. "
            + "여러 줄은 Ctrl+Enter 로 확정, Esc 는 취소.";
+    }
     if (cell.zone === "extra")
       return "행위 위에 겹치는 동작. 행위가 이미 쓰고 있는 신체 부위는 못 씁니다 — "
            + "기승위라면 손·팔·시선·표정이 비어 있습니다. 자세를 바꾸는 내용은 버려집니다.";

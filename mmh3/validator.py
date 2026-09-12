@@ -930,3 +930,97 @@ def check_structure(imd):
         out.append('describes the contents of an unseen reference — "{}"'.format(
             body[m.start():m.end()].strip()[:110]))
     return out
+
+
+# ------------------------------------- can the lines fit in the running time?
+
+# 두 번 겪었습니다. 일본어 대사 62자를 10초에 넣었더니 초당 6.2자로 발음이 뭉개졌고,
+# 음성인식으로 되받아 보니 先生(센세이)이 センス(센스)로, お願いします가
+# オネガタカラのシマス로 나왔습니다. 가이드라인에는 "2.5-3 spoken words per second"
+# 라는 규칙이 있는데, 그건 영어 단어 기준이라 일본어·한국어에는 맞지 않습니다 —
+# 같은 뜻을 옮기면 음절 수가 두 배가 됩니다. 그래서 문자 체계별로 따로 셉니다.
+_CJK = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]")
+_SPEAKABLE = re.compile(r"[^\w\s]", re.UNICODE)
+
+# 초당 편하게 발음되는 양. 넘으면 뭉개지기 시작합니다.
+_RATE_CJK = 4.5          # 글자(모라)
+_RATE_LATIN = 2.8        # 단어
+
+
+def _spoken_cost(body):
+    """대사 한 줄 -> (읽는 데 걸리는 초, 사람이 읽을 설명)."""
+    text = _SPEAKABLE.sub("", body or "").strip()
+    if not text:
+        return 0.0, ""
+    if _CJK.search(text):
+        n = len(re.sub(r"\s+", "", text))
+        return n / _RATE_CJK, "{}자".format(n)
+    n = len(text.split())
+    return n / _RATE_LATIN, "{}단어".format(n)
+
+
+def check_dialogue_rate(prompt, duration):
+    """대사가 영상 길이에 들어가는가.
+
+    들어가지 않으면 모델은 말을 빨리 하는 게 아니라 음절을 삼킵니다. 결과물을 보기
+    전에는 알 수 없고, 보고 나면 이미 늦습니다.
+    """
+    secs = float(duration or 0)
+    if secs <= 0:
+        return []
+    lines = re.findall(r"<d>\s*(?:\[[^\]]*\]\s*)?(.*?)</d>", prompt or "", re.DOTALL)
+    if not lines:
+        return []
+    total, parts = 0.0, []
+    for body in lines:
+        cost, label = _spoken_cost(body)
+        total += cost
+        if label:
+            parts.append(label)
+    if total <= 0:
+        return []
+    # 줄 사이 쉼과 앞뒤 여유. 한 줄이면 쉼이 없습니다.
+    total += 0.5 * max(0, len(lines) - 1) + 1.5
+    if total <= secs:
+        return []
+    need = int(total + 0.999)
+    fit = secs / total
+    return ["대사가 영상 길이에 들어가지 않습니다 — {} ({}줄) 을 편하게 읽으면 약 "
+            "{:.0f}초가 필요한데 영상은 {:.0f}초입니다. 모델은 빨리 읽는 게 아니라 "
+            "음절을 삼켜서, 발음이 뭉개지고 자막으로 받아적으면 다른 말이 됩니다. "
+            "영상을 {}초 이상으로 늘리거나, 대사를 지금의 {:.0f}% 로 줄이세요."
+            .format(" + ".join(parts), len(lines), total, secs, need, fit * 100)]
+
+
+# ------------------------------------- is the order of events actually pinned?
+
+# 도시 -> 터널 -> 사막 순으로 쓰고 싶었는데 도시 -> 사막 -> 터널로 나왔습니다.
+# 프롬프트를 보니 "before", "once the line ends" 로 순서를 잡고 있었는데, 그런
+# 상대 표현은 모델이 순서를 바꿔도 어긴 것이 아닙니다. 시각은 못 바꿉니다.
+_REL_ORDER = re.compile(
+    r"\b(before|after(?:wards)?|then|next|later|subsequently|meanwhile"
+    # "once the line ends", "as soon as she finishes speaking" — 사이에 몇 단어가
+    # 끼든 잡아야 합니다. 예전에는 한 단어만 허용해서 정작 겪은 문장을 놓쳤습니다.
+    r"|once\s+(?:\w+\s+){0,4}?(?:ends?|finishes|is\s+over|has\s+spoken)"
+    r"|as\s+soon\s+as|following\s+that|at\s+the\s+end\s+of\s+(?:the\s+)?line)\b",
+    re.IGNORECASE)
+_EVENT_TS = re.compile(r"\bAt\s+\d\d:\d\d\.\d{3}", re.IGNORECASE)
+
+
+def check_event_order(imd):
+    """한 샷 안에서 사건 순서를 상대 표현으로만 잡고 있는가."""
+    body = imd or ""
+    out = []
+    cuts = [m.start() for m in SHOT_RE.finditer(body)] + [len(body)]
+    for i in range(len(cuts) - 1):
+        chunk = body[cuts[i]:cuts[i + 1]]
+        words = sorted({m.group(0).lower() for m in _REL_ORDER.finditer(chunk)})
+        # 샷을 여는 "At MM:SS.mmm" 은 컷 시각이라 사건 순서를 정하지 않습니다.
+        stamps = len(_EVENT_TS.findall(chunk)) - (1 if i > 0 else 0)
+        if len(words) >= 2 and stamps <= 0:
+            out.append(
+                '샷 {} 은 사건 순서를 "{}" 같은 상대 표현으로만 잡고 있습니다. '
+                '모델이 순서를 바꿔도 지시를 어긴 것이 아니라서 실제로 뒤바뀝니다. '
+                '순서가 중요하면 "At 00:05.000," 처럼 시각을 박으세요.'
+                .format(i + 1, '", "'.join(words[:3])))
+    return out

@@ -1,0 +1,37 @@
+{
+  "_schema": {
+    "label": "드롭다운에 보이는 이름",
+    "genre": "브리프에 나가는 영어 장르명. 모델이 이 이름 하나로 자기 지식을 불러옵니다.",
+    "note": "그 장르에서 모델이 기본값으로 자꾸 틀리는 것만. 대부분 비워 둡니다.",
+    "_why": [
+      "예전에는 장르마다 조명·구도·의상 표와 장면 15개를 손으로 적어 넣었습니다.",
+      "직접 테스트해 보니 27B 모델이 그 표보다 훨씬 많이 알고 있었습니다 — 역광과",
+      "림라이트, 프레임 인 프레임, 반사 구도, 렌즈와 조리개, 계절별 경향, 소품까지",
+      "스스로 말했고, 장소·의상·빛이 서로 어울리는 컨셉도 한 번에 만들었습니다.",
+      "표는 그 지식을 대체하는 게 아니라 덮고 있었습니다. 그래서 이름만 남깁니다.",
+      "스타일(styles.json)은 매체를, 테마는 장르를 정합니다. 둘은 같이 씁니다 —",
+      "'2D 애니' + '그라비아 화보' 는 애니 화보가 됩니다."
+    ]
+  },
+
+  "gravure":      { "label": "그라비아 화보",        "genre": "Japanese gravure photobook", "note": "" },
+  "portrait":     { "label": "감성 포트레이트",       "genre": "soft emotive portrait photography", "note": "" },
+  "lookbook":     { "label": "패션 룩북",           "genre": "fashion lookbook editorial", "note": "" },
+
+  "drama":        { "label": "시네마틱 드라마",       "genre": "cinematic narrative drama", "note": "" },
+  "sliceoflife":  { "label": "일상 (슬라이스 오브 라이프)", "genre": "slice-of-life", "note": "카메라 자리에 아무도 없다. 인물은 촬영되고 있다는 것을 모른다." },
+  "vlog":         { "label": "브이로그",            "genre": "first-person vlog", "note": "카메라는 인물이 직접 들고 있거나 어딘가에 올려둔 기기다. 인물이 렌즈에 대고 말한다." },
+  "documentary":  { "label": "다큐멘터리",           "genre": "observational documentary", "note": "" },
+
+  "horror":       { "label": "호러 / 서스펜스",      "genre": "horror and suspense", "note": "" },
+  "noir":         { "label": "느와르 / 스릴러",      "genre": "film noir thriller", "note": "" },
+  "action":       { "label": "액션",               "genre": "action", "note": "" },
+
+  "fantasy":      { "label": "판타지 / 이세계",      "genre": "high fantasy and isekai", "note": "" },
+  "cyberpunk":    { "label": "사이버펑크 네온",       "genre": "neon cyberpunk", "note": "" },
+  "scifi":        { "label": "SF",                "genre": "science fiction", "note": "" },
+
+  "musicvideo":   { "label": "뮤직비디오",           "genre": "music video", "note": "" },
+  "commercial":   { "label": "광고 / 제품 CF",       "genre": "high-end commercial product film", "note": "" },
+  "travel":       { "label": "여행 필름",           "genre": "travel film", "note": "" }
+}
