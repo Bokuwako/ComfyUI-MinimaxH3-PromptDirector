@@ -562,9 +562,9 @@ def act_block(card, label_fn, pov_target=None):
         # 그래서 보이는 쪽은 자세에서 끌어오고, 안 보이는 쪽만 고정합니다.
         tail.append(
             "{me} IS THE CAMERA IN THIS SHOT. Whatever parts of {me}'s own body fall "
-            "within {me}'s line of sight in the posture above — chest, stomach, hips, "
-            "thighs — are drawn, foreshortened as seen looking down {me}'s own body. "
-            "{me}'s face, head and back never are. {others} {verb} fully visible, seen "
+            "within {me}'s line of sight in the posture and gaze above are drawn "
+            "with the appropriate perspective. "
+            "{others} {verb} visible only where the view permits, seen "
             "from {me}'s own eyes.".format(
                 me=me, others=", ".join(others) or "The other person",
                 verb="are" if len(others) > 1 else "is"))
@@ -601,15 +601,12 @@ def act_block(card, label_fn, pov_target=None):
         names = ", ".join("<{}>".format(label_fn(t)) for t in everyone)
         # 총원을 단정하면 안 됩니다. 행위 줄에 없이 '내용' 칸에만 적힌 사람이 있으면
         # 숫자가 틀리고, 틀린 숫자는 그 사람을 빼도 된다는 신호가 됩니다.
-        line = ("이 샷의 행위에 참여하는 인물은 {} 이다. 이들은 한 사람도 빠짐없이 "
-                "각자의 <Subject N> 을 subject_definitions 에 받는다. 위 '내용' 에 "
-                "이들 말고 다른 사람이 더 적혀 있으면 그 사람도 번호를 받는다. "
-                "레퍼런스 이미지가 없는 사람도 번호를 받는다 — 번호가 없으면 그 "
-                "사람의 손과 동작이 다른 사람에게 잘못 붙는다.".format(names))
+        line = ("행위 참가자: {}. 각 인물의 신원을 구분하고 손·자세·행동을 해당 "
+                "인물에게 연결한다. REF2VA에서는 참조된 인물의 Subject 라벨을 유지한다. "
+                "참조 없는 인물은 출처를 꾸미지 않고 식별하며, 화자 번호는 별도로 "
+                "첫 발성 순서에 따라 부여한다.".format(names))
         if pov_target:
-            line += (" 카메라인 <{}> 도 번호를 받되, 그 줄에는 그 자세에서 자기 시야에 "
-                     "들어오는 자기 몸의 부위와, 얼굴·머리·등은 그려지지 않는다는 것만 "
-                     "적는다.".format(label_fn(pov_target)))
+            line += " POV 인물은 실제 자세와 시선에 따라 자기 시야에 들어오는 부분만 서술한다."
         tail.append(line)
 
     # 행위 문장의 방향은 전부 몸 기준입니다. 그런데 "등을 ~로 돌린다", "가슴이 ~를

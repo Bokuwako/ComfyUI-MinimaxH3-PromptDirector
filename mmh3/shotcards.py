@@ -13,6 +13,8 @@ description are what the canvas UI shows and what it puts in a hover tooltip; th
 directive is what reaches the model.
 """
 
+import math
+
 try:
     from . import acts
 except ImportError:
@@ -27,9 +29,9 @@ VIEWPOINT = [
     # 실제로 관찰자를 세우고 싶으면 시점=1인칭 POV + 대상=지켜보는 제3자 를 씁니다.
     # `제3의 인물` 이라는 라벨이 구경꾼을 그리게 만든 전례가 있어 미리 갈라 둡니다.
     ("objective", "관찰 시점 (사람 없음)",
-     "카메라 자리에 아무도 없습니다. 아무도 렌즈를 보지 않습니다. 관찰자를 실제로 "
+     "카메라는 장면 속 인물의 눈이 아닌 외부 시점입니다. 인물의 시선은 내용에서 정합니다. 관찰자를 실제로 "
      "세우려면 '1인칭 POV' + 대상 '지켜보는 제3자' 를 쓰세요.",
-     "an observing camera with no character at the camera position; nobody looks into the lens"),
+     "an external observing camera, independent of any character's eyes"),
     ("shoulder", "어깨너머", "특정 인물의 어깨와 뒤통수가 화면 앞쪽에 걸칩니다.",
      "an over-the-shoulder framing with {who}'s shoulder and the back of their head in the near foreground"),
     ("subjective", "밀착 시점", "인물의 눈은 아니고, 머리 옆에 바짝 붙은 카메라입니다.",
@@ -319,7 +321,9 @@ def facing_anchor(card, who):
     후보에서 뺍니다. 아무것도 못 찾으면 예전처럼 "the subject" 로 둡니다.
     """
     explicit = card.get("facing_target") or ""
-    if explicit:
+    shoulder = card.get("viewpoint") == "shoulder"
+    shoulder_target = (card.get("vp_target") or "") if shoulder else ""
+    if explicit and explicit != shoulder_target:
         return "<{}>".format(who_label(explicit))
     pov_t = (card.get("vp_target") or "") if card.get("viewpoint") == "pov" else ""
     seen = []
@@ -327,10 +331,12 @@ def facing_anchor(card, who):
         if not isinstance(ln, dict):
             continue
         for t in (ln.get("a"), ln.get("b")):
-            if t and t != pov_t and t not in seen:
+            if t and t not in (pov_t, shoulder_target) and t not in seen:
                 seen.append(t)
     if seen:
         return "<{}>".format(who_label(seen[0]))
+    if shoulder:
+        return "the subject beyond the foreground shoulder"
     if who and who != "한 인물":
         return "<{}>".format(who)
     return "the subject"
@@ -486,24 +492,124 @@ def is_same_moment(card):
     return (card or {}).get("link") == "same_moment"
 
 
+def effective_cards(cards):
+    """Resolve same-moment state without copying the previous camera prose."""
+    result = [dict(c) if isinstance(c, dict) else {} for c in (cards or [])]
+    for i in range(1, len(result)):
+        if is_same_moment(result[i]):
+            result[i]["text"] = ""
+            result[i]["acts"] = [dict(a, a_pos="", b_pos="")
+                                 for a in (result[i - 1].get("acts") or [])]
+    return result
+
+
+def cut_time_problems(times, duration=0.0):
+    problems, previous = [], 0.0
+    for n, raw in enumerate(times, start=2):
+        if raw is None or raw == "":
+            problems.append("샷 {}: 전환 시각이 비어 있습니다.".format(n))
+            continue
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            value = float("nan")
+        if not math.isfinite(value) or value <= 0:
+            problems.append("샷 {}: 전환 시각은 0보다 큰 유한한 초 값이어야 합니다.".format(n))
+            continue
+        if value <= previous:
+            problems.append("샷 {}: 전환 시각은 앞 샷의 전환 시각보다 늦어야 합니다.".format(n))
+        if duration > 0 and value >= duration:
+            problems.append("샷 {}: 전환 시각은 영상 길이({}초)보다 앞이어야 합니다.".format(n, duration))
+        previous = value
+    return problems
+
+
 def continuity_line(card, n):
-    """샷 n 이 앞 샷과 어떻게 이어지는지. n 은 1부터."""
     prev = n - 1
     link = (card or {}).get("link") or ""
-    if link == "same_moment":
-        return ("유지: 이 샷은 샷 {}과 같은 순간이 이어지는 것이다. 장소·인물·의상·"
-                "조명은 물론 자세와 누가 무엇을 하고 있는지까지 전부 샷 {}과 같다. "
-                "샷 {}에 쓴 장소 묘사를 같은 단어로 그대로 다시 써라 — 브리프에 없던 "
-                "것을 샷 {}에서 네가 정했다면 그것도 이 영상의 사실이고, 네가 지어낸 "
-                "것이라고 해서 바꿔도 되는 것이 아니다. 이 샷에서 바뀌는 것은 카메라 "
-                "하나뿐이다.".format(prev, prev, prev, prev))
     if link == "new_scene":
-        return ("전환: 이 샷은 샷 {}과 다른 장소이거나 다른 시간이다. 앞 샷의 장소와 "
-                "조명을 이어받지 마라. 다만 인물의 외형과 의상은 그대로 유지하고, 이 "
-                "샷에서도 다시 적어라.".format(prev))
-    return ("유지: 샷 {}과 같은 장소, 같은 인물, 같은 의상, 같은 조명이다. "
-            "장소와 인물 외형을 이 샷에서도 다시 적어라. "
-            "동작은 끊기지 않고 이어진다.".format(prev))
+        return "새 장면: 이 샷에서 지정한 장소와 시간을 사용하고 인물의 정체성과 의상은 유지한다."
+    state = "자세와 진행 중인 행동까지" if link == "same_moment" else "행동의 흐름을"
+    return ("연속성: 샷 {}의 인물·의상·실제 공간 구조·광원과 {} 이어받는다. "
+            "이 샷에서 보이는 식별 특징만 간결하게 적는다. 화면 속 위치와 보이는 면, "
+            "구도와 화면 기준 조명 방향은 이 샷의 카메라에서 다시 정한다."
+            .format(prev, state))
+
+
+# 컷 너머로 화면 기준 표현이 복사되는 문제.
+#
+# 첫 프레임이나 샷 1 구도가 있고, 다음 샷에서 같은 상황을 다른 카메라로 잡으면 매번
+# 샷 1 구도로 돌아갔습니다. 원인은 연속성 규칙("각 인물이 어디에 있는지 모든 샷에 다시
+# 적어라")이었습니다. LLM 은 샷 1에 쓴 위치 문장을 그대로 반복하는데, 그 문장이
+# "뒤돌아서 화면 오른쪽 아래" 같은 화면 기준 표현이라 새 카메라를 지워버립니다.
+# 막는 규칙은 가이드라인 7번에 있었지만 키워드로만 켜지고, 켜져도 46,000자 안에 묻힙니다.
+#
+# 그래서 이 문장은 브리프의 샷 내용 옆에 둡니다. 근거가 된 해결 사례:
+#   * 시스템 프롬프트의 규칙은 브리프의 같은 규칙에 진다 (2026-09-02 측정 2회).
+#   * 모순되는 지시는 뭉개진다 — 어느 쪽이 이기는지 명시한다 ("구도는 이 샷의 카메라가").
+#   * back/front/behind/side 는 카메라가 약하면 구도로 읽힌다 — 옮기지 말 말을 단어로.
+#   * 카메라가 한 사람만 부르면 그 사람만 돈다 — 한 사람씩 따로 적게 한다 (acts.py).
+#   * 사이드뷰에는 화면 기준점이 없다 — 화면 어디에 있는지 한 구절 (측정).
+# 예시 문장은 넣지 않습니다. 가이드라인 안의 예시 문장은 출력에 그대로 복사됩니다.
+#
+# 매치컷은 일부러 앞 구도를 잇는 전환이라 붙이지 않고, 새 장면은 장소부터 바뀌어
+# 이어받을 자세가 없으니 붙이지 않습니다.
+_PERSON_ROLES = ("character", "character_full", "face")
+
+
+def _shot_people(card, refs, pov_target=None):
+    """이 샷의 인물. (확실히 나오는 사람, 나올 수도 있는 후보)."""
+    sure, maybe = [], []
+
+    def add(bucket, t):
+        if t and t != pov_target and t not in sure and t not in bucket:
+            bucket.append(t)
+
+    for ln in acts.act_lines(card):
+        add(sure, ln["a"])
+        add(sure, ln["b"])
+    for ln in dialogue_lines(card):
+        add(maybe, ln.get("who"))
+    # 행위 줄이 사람을 이미 정했으면 레퍼런스 인물을 또 부르지 않습니다 — "이 샷의 여자"
+    # 와 "이미지 1의 인물" 이 같은 사람인데 둘 다 부르면 두 명으로 읽힐 수 있습니다.
+    if not sure:
+        for r in refs or []:
+            if (r.get("role") or "").strip() in _PERSON_ROLES and r.get("n") not in (None, ""):
+                add(maybe, "pic:{}".format(r.get("n")))
+    return sure, [t for t in maybe if t not in sure]
+
+
+def recompose_line(card, n, refs=None):
+    """컷 뒤 샷의 구도를 새 카메라 기준으로 다시 잡게 하는 문장. 해당 없으면 ""."""
+    if n <= 1:
+        return ""
+    if (card.get("link") or "") == "new_scene":
+        return ""
+    prev = n - 1
+    pov_t = card.get("vp_target") if card.get("viewpoint") == "pov" else None
+    sure, maybe = _shot_people(card, refs, pov_t)
+    if sure:
+        who = "{} 이 각각".format(", ".join("<{}>".format(who_label(t)) for t in sure))
+        if maybe:
+            who += " (그리고 {} 중 이 샷 화면에 나오는 사람도)".format(
+                ", ".join("<{}>".format(who_label(t)) for t in maybe))
+    elif maybe:
+        who = "{} 중 이 샷 화면에 나오는 사람마다".format(
+            ", ".join("<{}>".format(who_label(t)) for t in maybe))
+    else:
+        who = "이 샷 화면에 나오는 인물마다"
+    # "이 샷의 카메라가 정한다" 로 쓰면 바로 위 내용 줄의 "구도는 이 내용이 정한다" 와
+    # 부딪힙니다. 시점을 내용 칸에 쓰는 사람도, 카메라 드롭다운으로 고르는 사람도 있어서
+    # 둘 다 가리키게 적습니다.
+    return ("매치컷은 명시한 매칭 요소만 유지한다. "
+            "구도: 샷 {p}에서 컷으로 넘어왔고, 이 샷의 구도는 이 샷에서 지정한 시점 — 위 "
+            "내용과 카메라 줄 — 이 정한다. "
+            "샷 {p}에서 이어받는 것은 인물들이 서로에 대해 어떻게 놓였는지 — 누가 누구 "
+            "옆에 있고 누구를 보는지 — 와 자세다. 화면 속 자리와 몸의 어느 면이 렌즈에 "
+            "보이는지는 이 샷의 카메라 기준으로 새로 적는다. 샷 {p}에서 화면을 기준으로 "
+            "쓴 말(화면 왼쪽, 화면 오른쪽, 구석, 카메라를 향함, 등이 보임, 뒤통수)은 이 "
+            "샷으로 옮기지 않는다. {w} 이 카메라에 대해 어느 쪽을 향하고 화면 어디에 "
+            "있는지를 한 사람씩 따로 한 문장으로 적어라.").format(p=prev, w=who)
 
 
 def camera_sentence(card, who, frame_anchored=False):
@@ -562,7 +668,7 @@ def camera_sentence(card, who, frame_anchored=False):
     key = card.get("motion")
     sent, lab = en("motion", key, who), ko("motion", key)
     if sent:
-        for f in ("amp", "speed"):
+        for f in (() if key == "static" else ("amp", "speed")):
             extra = en(f, card.get(f))
             if extra:
                 sent += " " + extra
@@ -619,7 +725,7 @@ def refs_block(refs, cards=None):
         return "", {}
     out = ["레퍼런스 이미지 용도(각 이미지가 무엇을 지배하는지 반드시 명시할 것):"] + lines
     if axes.get("frame_anchor"):
-        out.append("위에서 ★ 로 표시된 이미지는 실제 프레임이다. subject_definitions 에 "
+        out.append("위에서 ★ 로 표시된 이미지는 지정 시점의 실제 프레임이다. REF2VA에서는 subject_definitions 에 "
                    "<Picture N> 항목을 따로 세우고, summary 의 태스크 타입에 "
                    "keyframe completion 을 포함하라.")
     return "\n".join(out), axes
@@ -641,13 +747,8 @@ def build(cards, subjects_text="", refs=None, language="Korean",
     # 아래의 모든 블록(행위·내용·전개·리포트)이 같은 값을 봅니다 — 카드마다 따로
     # 챙기면 한 군데를 빠뜨리게 되고, 실제로 행위 줄을 다시 고르지 않아 자세 문장이
     # 통째로 빠지는 일이 있었습니다. 원본 리스트는 건드리지 않습니다.
-    cards = [dict(c) if isinstance(c, dict) else {} for c in (cards or [])]
-    for i in range(1, len(cards)):
-        if is_same_moment(cards[i]):
-            cards[i]["acts"] = cards[i - 1].get("acts") or []
-            cards[i]["text"] = cards[i - 1].get("text") or ""
-            # 추가 동작과 대사는 물려받지 않습니다. 같은 순간이라도 이 샷에서만
-            # 보여주고 싶은 것이 있을 수 있고, 대사를 복제하면 같은 말이 두 번 나갑니다.
+    cards = effective_cards(cards)
+    problems.extend(cut_time_problems([c.get("at") for c in cards[1:]], duration))
     if cards and is_same_moment(cards[0]):
         cards[0] = dict(cards[0])
         cards[0]["link"] = ""          # 첫 샷은 이어받을 앞 샷이 없습니다
@@ -655,7 +756,7 @@ def build(cards, subjects_text="", refs=None, language="Korean",
                         "처리했습니다.")
 
     rb, raxes = refs_block(refs, cards)
-    anchored = bool(raxes.get("frame_anchor"))
+    anchored = any(r.get("role") == "first_frame" for r in (refs or []))
     if rb:
         out.append(rb)
         out.append("")
@@ -667,9 +768,13 @@ def build(cards, subjects_text="", refs=None, language="Korean",
         head = "[샷 {}]".format(n)
         if n > 1:
             at = c.get("at")
-            tr = ko("transition", c.get("transition") or "cut")
+            transition = c.get("transition") or "cut"
+            tr = ko("transition", transition)
+            transition_text = en("transition", transition)
+            if transition == "fade":
+                transition_text = "the shot fades to black, then fades in to the next shot"
+            tr += " (" + transition_text + ")"
             if at in (None, ""):
-                problems.append("샷 {}: 전환 시각이 비어 있습니다.".format(n))
                 head += " {}".format(tr)
             else:
                 head += " {}초에 {}".format(at, tr)
@@ -698,51 +803,18 @@ def build(cards, subjects_text="", refs=None, language="Korean",
 
         body = (c.get("text") or "").strip()
         if body:
-            # "빠뜨리지 마라" 는 그대로 둡니다. 350~500 단어로 줄일 때 강제가 없는 줄이
-            # 가장 먼저 잘려나가서, 사용자가 쓴 손 위치가 통째로 사라진 적이 있습니다.
-            # 다만 '완전성' 과 '우선권' 은 다른 문제라, 우선권은 영역별로 쪼갭니다.
-            rule = ["위 내용은 사용자가 직접 쓴 것이다. 한 문장도 빠뜨리지 말고 전부 "
-                    "프롬프트에 반영하라."]
-            if av and cam:
-                rule.append("장소·의상·표정·분위기는 이 내용이 정하고, 아래의 지시보다 "
-                            "우선한다. 다만 몸의 자세와 방향, 누가 움직이는지는 아래 "
-                            "'행위' 가 정하고, 무엇이 화면에 그려지는지는 아래 '카메라' 가 "
-                            "정한다. 그 둘과 어긋나는 부분은 버리고, 두 쪽을 섞지 마라.")
-            elif av:
-                rule.append("장소·의상·표정·분위기는 이 내용이 정하고, 아래의 지시보다 "
-                            "우선한다. 다만 몸의 자세와 방향, 누가 움직이는지는 아래 "
-                            "'행위' 가 정한다. 그와 어긋나는 부분은 버리고, 두 쪽을 섞지 "
-                            "마라.")
-            elif cam:
-                rule.append("장소·의상·표정·분위기에 더해 몸의 자세와 방향, 누가 "
-                            "움직이는지도 이 내용이 정한다. 아래 '카메라' 는 무엇이 화면에 "
-                            "그려지는지만 정하니, 그와 어긋나는 부분만 버려라.")
-            else:
-                rule.append("이 샷의 자세·움직임·구도는 전부 이 내용이 정한다. "
-                            "여기 적히지 않은 것만 네가 채워라.")
             out.append("내용: " + body)
-            out.append(" ".join(rule))
-        else:
-            problems.append("샷 {}: 내용이 비어 있습니다.".format(n))
-
+            out.append("내용의 사건·대사·외형을 반영한다. 명시한 행위와 카메라 선택은 각각 "
+                       "자세·행동과 시점을 정하고, 비어 있는 항목은 내용에서 가져온다. "
+                       "동시에 성립할 수 없는 요구는 임의로 삭제하지 말고 충돌로 취급한다.")
         if av:
             out.append(av)
-
-        # 추가 동작은 행위를 이기는 게 아니라 그 위에 얹힙니다. 그래서 행위 바로 뒤에
-        # 두고, 무엇을 쓸 수 있고 부딪히면 무엇을 버릴지를 그 자리에서 못박습니다.
-        # "자유롭게 해라" 는 옆의 구체적인 행위 문장에 항상 집니다 — 쓸 수 있는 부위를
-        # 이름으로 부르는 편이 실제로 먹힙니다.
         extra = (c.get("extra") or "").strip()
         if extra:
             out.append("추가 동작: " + extra)
             if av:
-                out.append("위의 행위는 그대로 계속된다. 이 추가 동작은 그 위에 겹친다. "
-                           "위 행위가 이미 쓰고 있는 신체 부위는 쓰지 말고, 남는 부위로만 "
-                           "하라. 위 행위의 자세·방향·누가 움직이는지를 바꾸는 내용이면 "
-                           "그 부분은 버려라.")
-            else:
-                out.append("이 샷에는 지정된 행위가 없다. 위 동작을 그대로 쓰되, "
-                           "적히지 않은 부분만 네가 채워라.")
+                out.append("추가 동작은 지정된 자세와 행동에 양립하도록 반영한다. "
+                           "같은 신체 부위의 동시 사용 등 양립 불가 조건은 충돌이다.")
 
         # 전개는 추가 동작보다 약합니다 — 사용자가 직접 쓴 것이 굴린 주사위에 밀리면
         # 안 되니, 앞의 두 블록이 자리를 잡은 뒤에 옵니다. 샷마다 길이를 따로 알 수는
@@ -765,12 +837,14 @@ def build(cards, subjects_text="", refs=None, language="Korean",
             out.append("카메라는 무엇이 화면에 그려지는지만 정한다. 위에 적힌 자세와 "
                        "움직임은 그대로 두고, 그것을 이 시점에서 본 모습으로 그려라.")
         if anchored and n == 1:
-            out.append("구도: 0.00초의 화면은 지정된 첫 프레임 이미지 그대로다. 샷 "
-                       "사이즈·앵글·방향을 글로 다시 지시하지 마라. 프레임 안에 무엇이 "
-                       "있는지만 적고, 어떻게 잡혔는지는 적지 마라.")
+            out.append("첫 프레임: 0초에는 지정 이미지의 실제 인물·구도·상태를 정확히 서술한다. "
+                       "새 구도는 그 이후의 카메라 이동 또는 다음 샷에 적용한다.")
 
         if n > 1:
             out.append(continuity_line(c, n))
+            rl = recompose_line(c, n, refs)
+            if rl:
+                out.append(rl)
 
         vp = c.get("viewpoint") or ""
         if vp:

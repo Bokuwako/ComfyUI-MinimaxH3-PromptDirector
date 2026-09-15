@@ -98,6 +98,25 @@ const labelOf = (f, k) => rowOf(f, k).ko || "—";
 const tipOf = (f, k) => rowOf(f, k).tip || "";
 const menuFor = f => rowsOf(f).map(r => ({ v: r.key, ko: r.ko, tip: r.tip }));
 
+function unavailableReason(shot, key) {
+  if (shot.viewpoint === "pov" && (key === "size" || key === "shot_type"))
+    return "POV에서는 시점 인물의 눈과 시선으로 구도를 정합니다.";
+  if (shot.motion === "static" && (key === "amp" || key === "speed"))
+    return "고정 카메라에는 이동 폭과 속도를 적용하지 않습니다.";
+  return "";
+}
+
+function effectiveShots(shots) {
+  const result = shots.map(s => ({ ...s }));
+  for (let i = 1; i < result.length; i++) {
+    if (result[i].link === "same_moment") {
+      result[i].text = "";
+      result[i].acts = (result[i - 1].acts || []).map(a => ({ ...a, a_pos: "", b_pos: "" }));
+    }
+  }
+  return result;
+}
+
 function blankShot() {
   return { text: "", viewpoint: "", vp_target: "", size: "", angle: "", facing: "",
            shot_type: "", motion: "", amp: "", speed: "", at: null, transition: "cut",
@@ -113,7 +132,7 @@ function readData(node) {
     const shots = Array.isArray(d) ? d : d.shots;
     const refs = (d && d.refs) || [];
     return {
-      shots: Array.isArray(shots) && shots.length ? shots : [blankShot()],
+      shots: effectiveShots(Array.isArray(shots) && shots.length ? shots : [blankShot()]),
       refs: Array.isArray(refs) && refs.length ? refs : [1, 2, 3].map(n => ({ n, role: "" })),
     };
   } catch {
@@ -123,7 +142,7 @@ function readData(node) {
 
 function writeData(node, shots, refs) {
   const w = dataWidget(node);
-  if (w) w.value = JSON.stringify({ version: 1, shots, refs });
+  if (w) w.value = JSON.stringify({ version: 1, shots: effectiveShots(shots), refs });
   // 높이만 다시 잡고 폭은 사용자가 늘린 값을 유지합니다. size[0] 을 직접 대입하지 않고
   // setSize 로 넘겨야 must_not 같은 DOM 위젯도 같은 폭으로 다시 배치됩니다.
   node.properties = node.properties || {};
@@ -422,7 +441,7 @@ class ShotCardsWidget {
         ctx.fillText(f.label, x, yy + 9);
         ctx.fillStyle = s[f.key] ? "#e2e2e2" : "#555";
         ctx.font = "10px sans-serif";
-        ctx.fillText(clip(ctx, labelOf(f.key, s[f.key]), cw), x, yy + 21);
+        ctx.fillText(clip(ctx, unavailableReason(s, f.key) ? "적용 안 함" : labelOf(f.key, s[f.key]), cw), x, yy + 21);
       });
 
       if (s.viewpoint && s.viewpoint !== "objective") {
@@ -591,7 +610,12 @@ class ShotCardsWidget {
       }
       if (cell.i > 0 && pos[0] > PAD + 48 && pos[0] < PAD + 104) {
         editInline(node, PAD + 48, this.last_y + cell.top + 3, 52, 16, s.at ?? "", false,
-          v => { s.at = v.trim() === "" ? null : parseFloat(v); writeData(node, shots, refs); });
+          v => {
+            const value = Number(v.trim());
+            if (v.trim() && !Number.isFinite(value)) return;
+            s.at = v.trim() === "" ? null : value;
+            writeData(node, shots, refs);
+          });
       } else if (cell.i > 0 && pos[0] >= PAD + 104 && pos[0] < PAD + 184) {
         loadVocab().then(() => menu(event, menuFor("transition"),
           v => { s.transition = v; writeData(node, shots, refs); }));
@@ -607,9 +631,12 @@ class ShotCardsWidget {
         return true;
       }
       const f = FIELDS[cell.idx];
+      if (f && unavailableReason(s, f.key)) return true;
       if (f) {
         loadVocab().then(() => menu(event, menuFor(f.key), v => {
           s[f.key] = v;
+          if (f.key === "motion" && v === "static") { s.amp = ""; s.speed = ""; }
+          if (f.key === "viewpoint" && v === "pov") { s.size = ""; s.shot_type = ""; }
           if (f.key === "viewpoint" && (!v || v === "objective")) s.vp_target = "";
           writeData(node, shots, refs);
         }));
@@ -769,6 +796,7 @@ class ShotCardsWidget {
       if (cell.r === 1 && cell.c === 3 && s.viewpoint && s.viewpoint !== "objective")
         return "이 시점이 누구의 것인지 고릅니다.";
       const f = FIELDS[cell.idx];
+      if (f && unavailableReason(s, f.key)) return unavailableReason(s, f.key);
       return f ? `${f.label} — ` + (tipOf(f.key, s[f.key]) || "클릭해서 고르세요.") : "";
     }
     if (cell.zone === "dlgadd")

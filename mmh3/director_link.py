@@ -146,37 +146,24 @@ def _encode_image(path, max_side=1024):
 # ----------------------------------------------------------------- timeline
 
 def parse_timeline(raw):
-    """timeline_data JSON -> (image_items, other_items). Sorted by slot then order."""
+    """Use the same per-kind order as Director and the native H3 tokenizer."""
     if not raw:
         return [], []
     try:
         data = json.loads(raw) if isinstance(raw, str) else raw
-    except Exception:
+    except (TypeError, ValueError):
         return [], []
-    items = data.get("items") or []
-
-    def key(it):
-        return (int(it.get("slot", 999) or 0), int(it.get("order", 999) or 0))
-
-    live = [it for it in items
-            if isinstance(it, dict) and it.get("enabled") is not False]
-    live.sort(key=key)
-
-    # SLOT is the reference number, not the insertion order. One slot holds one
-    # reference and may carry an audio file alongside its picture (a character and
-    # that character's voice). Re-ordering the lane rewrites 'slot' while 'order'
-    # keeps the original insertion history — so slot is what H3 counts.
-    # The Director has no video type: videos and GIFs are stored as "image".
+    live = [(i, dict(it)) for i, it in enumerate(data.get("items") or [])
+            if isinstance(it, dict) and it.get("enabled") is not False
+            and it.get("value", it.get("tensor")) is not None]
+    live.sort(key=lambda pair: (pair[1].get("slot", pair[0]), pair[0]))
     imgs, others = [], []
-    for it in live:
-        try:
-            it["_pic"] = int(it.get("slot", 0) or 0) + 1
-        except Exception:
-            it["_pic"] = 1
-        kind = (it.get("type") or "").lower()
-        val = it.get("value") or ""
-        is_img = kind == "image" or (not kind and val.lower().endswith(_MEDIA_EXT_IMAGE))
-        (imgs if is_img else others).append(it)
+    for _, it in live:
+        if it.get("type") == "image":
+            it["_pic"] = len(imgs) + 1
+            imgs.append(it)
+        else:
+            others.append(it)
     return imgs, others
 
 
@@ -206,17 +193,14 @@ def _norm_mode(raw_mode, n_images):
 
 
 def select_for_mode(image_items, mode, max_images=4):
-    """Pick which timeline images matter for a resolved guideline mode."""
     imgs = list(image_items or [])
-    if mode == "T2VA" or not imgs:
+    if mode == "T2VA":
         return []
-    if mode == "I2VA":
+    if mode in ("I2VA", "L2VA"):
         return imgs[:1]
-    if mode == "L2VA":
-        return imgs[-1:]
     if mode == "FL2VA":
-        return [imgs[0], imgs[-1]] if len(imgs) >= 2 else imgs[:1]
-    return imgs[:max_images]          # REF2VA
+        return imgs[:2]
+    return imgs[:max_images]
 
 
 def load_items(items, max_side=1024):
@@ -236,9 +220,9 @@ def load_items(items, max_side=1024):
             continue
         try:
             pic_no = it.get("_pic", idx + 1)
-            numbers.append(pic_no)
             side = max(320, max_side - idx * 8)
             b64.append(_encode_image(path, max_side=side))
+            numbers.append(pic_no)
             try:
                 from PIL import Image as _I
                 with _I.open(path) as _im:
@@ -315,23 +299,10 @@ def read_director(prompt_graph, node_id_hint=""):
         out["duration"] = None
         out["notes"].append("Could not read the Director's duration.")
 
-    # Number the non-image items per kind, in timeline order, so the prompt can cite
-    # <Video 2> / <Audio 1> and have the number mean the same thing the Director means.
-    # An audio file sharing a slot with a picture belongs to that picture.
-    pic_slots = {i.get("_pic") for i in imgs}
-    other_labels = []
-    for o in others:
-        kind = (o.get("type") or "").lower() or "asset"
-        name = os.path.basename(str(o.get("value") or "")) or "(unnamed)"
-        num = o.get("_pic", "?")
-        if num in pic_slots:
-            other_labels.append(
-                "<Picture {}> also carries {} ({}) — attached to that same reference, "
-                "NOT shown to you".format(num, name, kind))
-        else:
-            other_labels.append("<Picture {}> = {}  ({} — NOT shown to you)".format(
-                num, name, kind))
-    out["other_labels"] = other_labels
+    out["other_labels"] = reference_labels(others) if mode == "REF2VA" else []
+    if others and mode != "REF2VA":
+        out["notes"].append("This Director mode does not pass audio/video reference assets to H3; "
+                            "use REF2VA for voice or video references.")
 
     if others:
         kinds = sorted({(o.get("type") or "?") for o in others})
@@ -351,3 +322,45 @@ def fingerprint(prompt_graph, node_id_hint=""):
     keys = ("mode", "duration", "timeline_data", "builder_state")
     return json.dumps([nid] + [str(_widget_value(node, k))[:4000] for k in keys],
                       ensure_ascii=False, sort_keys=True)
+
+
+def reference_labels(items):
+    """Native H3 emits video soundtracks before standalone audio references."""
+    videos, tracks, audio_only_videos, audio_files = [], [], [], []
+    for item in items:
+        kind = item.get("type")
+        name = os.path.basename(str(item.get("value") or ""))
+        if kind == "audio":
+            audio_files.append(name)
+        elif kind == "video":
+            mode = item.get("media_mode", "video")
+            if mode in ("video", "video_audio"):
+                videos.append(name)
+                if mode == "video_audio" or item.get("audio") is not None:
+                    tracks.append((len(videos), name))
+            elif mode == "audio":
+                audio_only_videos.append(name)
+    result = ["<Video {}>: {} (video; not viewed)".format(i, name)
+              for i, name in enumerate(videos, 1)]
+    result += ["<Audio {}>: soundtrack of <Video {}> (audio; not heard)".format(i, video)
+               for i, (video, name) in enumerate(tracks, 1)]
+    result += ["<Audio {}>: {} (audio; not heard)".format(i, name)
+               for i, name in enumerate(audio_only_videos + audio_files, len(tracks) + 1)]
+    return result
+
+
+def continuation_context(prompt_graph):
+    contexts = [node for node in (prompt_graph or {}).values()
+                if isinstance(node, dict) and node.get("class_type") == "H3Context"
+                and _widget_value(node, "enabled") is not False]
+    modes = {_widget_value(node, "anchor_mode") for node in contexts}
+    if modes == {"head"}:
+        return ("CONTEXT PLACEMENT: head. Carried frames occupy the beginning of [Shot 1] "
+                "inside the full clip duration from 0 seconds. New events follow that overlap; "
+                "cut timestamps include it. The overlap is trimmed after generation. "
+                "Its exact length is determined by the context node, not by the writer.")
+    if modes == {"before"}:
+        return ("CONTEXT PLACEMENT: before. Carried context precedes the new clip at negative "
+                "times. [Shot 1] starts at 0 seconds with new continuation; "
+                "there is no leading overlap to subtract from the clip duration.")
+    return ""

@@ -253,6 +253,9 @@ class MMH3_ShotBuilder:
         mode = DIALOGUE_MODE.get(kw.get("dialogue_mode"), "auto")
         return {
             "shot_choices": choices,
+            "shot_count": len(cards),
+            "cut_times": [c.get("at") for c in cards[1:]],
+            "dialogue_rows": [line for card in cards for line in shotcards.dialogue_lines(card)],
             "style": kw.get("style", ""), "custom_style": "", "register": "",
             # `picture_roles` 는 Shot Builder 를 안 쓸 때 Writer 에 직접 적는 칸이라
             # 비워 둡니다 — 여기서 채우면 shotcards 가 이미 브리프에 쓴 역할 문단과
@@ -360,6 +363,7 @@ class MMH3_ShotBuilder:
         cfg.update({k: v for k, v in kw.items() if v is not None})
 
         cards, refs, errs = _parse(shots_data)
+        cards = shotcards.effective_cards(cards)
         must_not = cfg.get("must_not", "")
         brief, axes, problems = self.compose(
             cards, refs, must_not=must_not, dialogue_mode=cfg.get("dialogue_mode", ""),

@@ -21,7 +21,9 @@ _THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 _FENCE = re.compile(r"^\s*```[a-zA-Z0-9_-]*\s*\n(.*?)\n\s*```\s*$", re.DOTALL)
 
 CUT_PHRASES = ("the camera cuts to", "the shot cuts to", "the shot transitions to",
-               "the shot changes to", "the shot switches to")
+               "the shot changes to", "the shot switches to",
+               "the shot cross-dissolves to", "the shot dissolves to", "the shot fades to",
+               "the shot fades out", "the shot fades in", "the shot wipes to")
 
 INSTRUCTION_I2VA = ("For the target video, at 0.00 seconds into the target video, "
                     "<Picture 1> (from [Shot 1]) is fully referenced.")
@@ -150,8 +152,6 @@ def check_ref2va_sections(imd, n_images=0):
         body[name] = low[m.end(): nxt if nxt else len(low)].strip()
 
     subs = re.findall(r"<Subject\s*(\d+)\s*>", low)
-    if not subs:
-        out.append("no <Subject N> label anywhere — REF2VA needs at least one")
 
     if "subject_definitions" in body:
         if not body["subject_definitions"]:
@@ -187,19 +187,6 @@ def check_ref2va_sections(imd, n_images=0):
             out.append("retention_analysis has no retention marker "
                        "(fully_preserved / partially_preserved / attribute_transfer / "
                        "weak_reference)")
-        elif "attribute_transfer" in ra:
-            # A pose/style reference leaks identity unless the line also says what
-            # must NOT come across.
-            for ln in ra.splitlines():
-                if "attribute_transfer" not in ln:
-                    continue
-                low = ln.lower()
-                if not any(w in low for w in ("not ", "no ", "never", "do not", "discard",
-                                              "without", "exclud")):
-                    out.append("an attribute_transfer line does not say what must NOT "
-                               "transfer — identity from that reference will leak")
-                    break
-
     # Cited pictures that were never supplied — the picture-6 hallucination.
     if n_images:
         cited = sorted({int(x) for x in re.findall(r"<Picture\s*(\d+)\s*>", low)})
@@ -225,7 +212,7 @@ def check_frame_anchor(imd, mode):
     before 0.00 s — the model then drops the frame anchor entirely and the reference
     image stops being honoured.
     """
-    if mode not in _FRAME_MODES or not imd:
+    if mode not in ("I2VA", "FL2VA") or not imd:
         return []
     m = re.search(r"\[Shot\s*1\](.{0,700})", imd, re.DOTALL | re.IGNORECASE)
     if not m:
@@ -238,18 +225,6 @@ def check_frame_anchor(imd, mode):
                    "moment, so nothing on screen may differ from it at the start. Describe "
                    "the change happening ON SCREEN instead, or switch to REF2VA."
                    .format(hit.group(0).strip()[:50], mode))
-    if mode == "I2VA":
-        # There used to be a check here demanding the literal "<Picture 1>" inside
-        # [Shot 1]. It fired on prompts that described the opening frame perfectly well
-        # without citing the label, and the spec does not require the citation — the
-        # instruction line above the fields already carries it. Whether the picture's
-        # content actually reached the prompt is measured properly by
-        # check_inventory_coverage(), against what the vision pass really saw.
-        ref = _REF_WORDING.search(head)
-        if ref:
-            out.append('REF2VA wording in an I2VA prompt ("{}") — the picture is not a '
-                       "reference to preserve attributes from, it is the opening frame"
-                       .format(ref.group(0)))
     return out
 
 
@@ -274,7 +249,7 @@ def strip_wrapper(text):
     # Drop anything before the instruction line or the first real field.
     anchors = []
     for pat in (r"For the target video,", r"How the reference pictures align",
-                FIELD_IMD + r"\s*:"):
+                FIELD_IMD + r"\s*:", r"subject_definitions\s*:"):
         mm = re.search(pat, t)
         if mm:
             anchors.append(mm.start())
@@ -408,58 +383,25 @@ def _pop_timestamp(body):
 
 
 def _rebuild_shots(shots, duration, report):
-    """Renumber shots and enforce legal, strictly increasing cut times."""
-    n = len(shots)
-    times = []
-    bodies = []
+    """Normalize syntax while preserving supplied cut times and camera changes."""
+    out, prev = [], 0.0
     for i, (_num, body) in enumerate(shots):
         ts, rest = _pop_timestamp(body)
-        if i == 0 and ts is not None:
-            report.append("[fix] removed the timestamp from [Shot 1] (Shot 1 never carries one).")
-            ts = None
-        times.append(ts)
-        bodies.append(rest)
-
-    if n > 1:
-        dur = float(duration)
-        lo, hi = 1.0, max(1.2, dur - 0.8)
-        min_gap = 0.8
-        if dur / float(n) < min_gap:
-            report.append(
-                "[warn] {} shots in {:.2f}s leaves under {:.1f}s per shot — reduce shot_count."
-                .format(n, dur, min_gap))
-        need_redistribute = False
-        prev = 0.0
-        for i in range(1, n):
-            t = times[i]
-            if t is None or t < lo or t > hi or (t - prev) < min_gap:
-                need_redistribute = True
-                break
-            prev = t
-        if need_redistribute:
-            for i in range(1, n):
-                t = dur * i / float(n)
-                times[i] = round(min(max(t, lo), hi), 3)
-            # guarantee strict increase even after clamping
-            for i in range(2, n):
-                if times[i] <= times[i - 1]:
-                    times[i] = round(times[i - 1] + 0.2, 3)
-            report.append(
-                "[fix] cut times were missing, out of order, too close together or outside the "
-                "{:.2f}s duration — redistributed evenly.".format(dur))
-
-    out = []
-    for i in range(n):
-        body = bodies[i]
         if i == 0:
-            out.append("[Shot 1] " + body)
-        else:
-            if not any(p in body.lower() for p in CUT_PHRASES) and not re.match(
-                    r"(?i)\s*(the\s+)?(camera|shot|view|frame)\b", body):
-                body = "the camera cuts to " + body[0].lower() + body[1:] if body else \
-                    "the camera cuts to the next moment."
-                report.append("[fix] added a cut phrase to [Shot {}].".format(i + 1))
-            out.append("[Shot {}] At {}, {}".format(i + 1, _fmt_ts(times[i]), body))
+            if ts is not None:
+                report.append("[fix] removed timestamp from [Shot 1].")
+            out.append("[Shot 1] " + rest)
+            continue
+        if ts is None:
+            ts = float(duration) * i / len(shots)
+            report.append("[fix] supplied missing cut time for [Shot {}].".format(i + 1))
+        if not prev < ts < float(duration):
+            report.append("[warn] [Shot {}] cut time is not increasing or is outside duration; "
+                          "preserved for review.".format(i + 1))
+        if not any(p in rest.lower() for p in CUT_PHRASES):
+            rest = "the shot cuts to " + rest
+        out.append("[Shot {}] At {}, {}".format(i + 1, _fmt_ts(ts), rest))
+        prev = ts
     return out
 
 
@@ -580,33 +522,16 @@ def normalize(raw, mode="T2VA", duration=6.0, dialogue_expected=True,
         rebuilt = "[Shot 1] " + body_for_shots.strip()
         shot_count = 1
     else:
-        if preamble:
+        if preamble and not ref2va_sections:
             report.append("[fix] moved stray text before [Shot 1] into [Shot 1].")
             shots[0][1] = (preamble + " " + shots[0][1]).strip()
-        # The node asked for a specific shot count. Extra shots are folded into the
-        # last kept one — their cut marker and cut phrase go, their content stays.
-        if expected_shots and len(shots) > expected_shots:
-            extra = shots[expected_shots:]
-            keep = shots[:expected_shots]
-            tail = []
-            for _num, bodytext in extra:
-                bodytext = _TS_CLOCK.sub("", bodytext, count=1)
-                bodytext = _TS_PLAIN.sub("", bodytext, count=1)
-                bodytext = re.sub(
-                    r"^\s*,?\s*the (?:camera|shot) (?:cuts|transitions|changes|switches)"
-                    r"\s+to\s*", "", bodytext, count=1, flags=re.IGNORECASE)
-                if bodytext.strip():
-                    tail.append(bodytext.strip())
-            if tail:
-                keep[-1][1] = (keep[-1][1].rstrip() + " " + " ".join(tail)).strip()
-            report.append(
-                "[fix] {} shot(s) were written but shot_count is {} — the extra shot(s) "
-                "were merged into [Shot {}] instead of cutting.".format(
-                    len(shots), expected_shots, expected_shots))
-            shots = keep
-
+        if expected_shots and len(shots) != expected_shots:
+            report.append("[warn] expected {} shots, got {}. Preserved all shots; review the "
+                          "shot count rather than merging camera views.".format(expected_shots, len(shots)))
         rebuilt_list = _rebuild_shots(shots, duration, report)
-        rebuilt = " ".join(rebuilt_list)
+        rebuilt = "\n".join(rebuilt_list)
+        if ref2va_sections and preamble:
+            rebuilt = preamble + "\n" + rebuilt
         shot_count = len(rebuilt_list)
 
     new_imd = (sub_prefix + rebuilt) if sub_prefix else rebuilt
@@ -637,13 +562,10 @@ def normalize(raw, mode="T2VA", duration=6.0, dialogue_expected=True,
     parts = []
     if instruction:
         parts.append(instruction)
-    # Only REF2VA labels the description. Everywhere else the label is omitted entirely:
-    # a label the model never has to write is a label it can never misplace, and a
-    # misplaced one used to make the whole repair pass give up.
     if ref2va_sections:
-        parts.append("{}: {}".format(FIELD_IMD, new_imd))
-    else:
         parts.append(new_imd)
+    else:
+        parts.append("{}: {}".format(FIELD_IMD, new_imd))
     parts.append("{}: {}".format(FIELD_SS, ss))
     parts.append("{}: {}".format(FIELD_MUS, mus))
     clean = "\n\n".join(parts).strip() + "\n"
@@ -695,7 +617,10 @@ def brief_locks_camera(brief):
 
 def check_camera_lock(prompt, brief):
     """Warnings for camera moves in a prompt whose brief demanded a locked camera."""
-    if not brief_locks_camera(brief):
+    global_lock = any(h in (brief or "").lower() for h in (
+        "전체 영상 카메라 고정", "영상 내내 카메라 고정", "same camera position throughout",
+        "camera stays fixed throughout", "global camera lock"))
+    if not global_lock:
         return []
     problems = []
     hits = sorted({m.group(0).lower() for m in _MOVE_WORDS.finditer(prompt or "")})
@@ -703,26 +628,12 @@ def check_camera_lock(prompt, brief):
         problems.append(
             "the brief locks the camera, but the prompt contains camera motion: "
             + ", ".join(hits[:6])
-            + ". Those words alone unlock the camera — remove them.")
+            + ". Check whether these describe the camera within the locked shot.")
     reveals = sorted({m.group(0).lower() for m in _REVEAL.finditer(prompt or "")})
     if reveals:
         problems.append(
             "reveal phrasing acts as a camera move: " + ", ".join(reveals[:4])
             + ". Describe what is already in the fixed frame instead.")
-    # Count DISTINCT shot numbers inside the body only. The I2VA/FL2VA/L2VA
-    # instruction line also contains "[Shot 1]", which made a one-shot prompt look
-    # like two.
-    body = prompt or ""
-    m = re.search(r"integrated_multimodal_description\s*:", body, re.IGNORECASE)
-    if m:
-        body = body[m.end():]
-    cuts = len(set(re.findall(r"\[Shot\s+(\d+)\]", body)))
-    if cuts > 1 and not re.search(r"identical|unchanged|same fixed|does not change",
-                                  body, re.IGNORECASE):
-        problems.append(
-            "{} shots with a locked camera, and no shot restates that the framing is "
-            "unchanged. Either write it as one shot, or say at every cut that the camera "
-            "position and framing are identical.".format(cuts))
     return problems
 
 
@@ -985,11 +896,11 @@ def check_dialogue_rate(prompt, duration):
         return []
     need = int(total + 0.999)
     fit = secs / total
-    return ["대사가 영상 길이에 들어가지 않습니다 — {} ({}줄) 을 편하게 읽으면 약 "
-            "{:.0f}초가 필요한데 영상은 {:.0f}초입니다. 모델은 빨리 읽는 게 아니라 "
-            "음절을 삼켜서, 발음이 뭉개지고 자막으로 받아적으면 다른 말이 됩니다. "
-            "영상을 {}초 이상으로 늘리거나, 대사를 지금의 {:.0f}% 로 줄이세요."
-            .format(" + ".join(parts), len(lines), total, secs, need, fit * 100)]
+    return ["대사 길이 추정: {} ({}줄), 약 {:.1f}초 / 영상 {:.1f}초. "
+            "문자 수 기반 참고값이며 일본어 글자 수는 모라 수와 다릅니다. "
+            "실제 발화 속도와 시작 시각을 확인하세요. 대사는 삭제하거나 축약하지 않았습니다."
+            .format(" + ".join(parts), len(lines), total, secs)]
+
 
 
 # ------------------------------------- is the order of events actually pinned?
@@ -1024,3 +935,32 @@ def check_event_order(imd):
                 '순서가 중요하면 "At 00:05.000," 처럼 시각을 박으세요.'
                 .format(i + 1, '", "'.join(words[:3])))
     return out
+
+
+def check_requested_dialogue(prompt, rows, language, speech_requested=False):
+    blocks = re.findall(r"<d>\s*\[([^\]]+)\]\s*(.*?)</d>", prompt or "", re.DOTALL)
+    out = []
+    if (rows or speech_requested) and not blocks:
+        out.append("requested dialogue is missing; keep the lines and regenerate")
+    elif len(blocks) < len(rows):
+        out.append("{} requested lines but only {} dialogue blocks; check omissions".format(len(rows), len(blocks)))
+    for tag, text in blocks:
+        if tag.strip().lower() != language.lower():
+            out.append("dialogue tag {} differs from target {}".format(tag, language))
+    for row in rows:
+        text = row.get("text", "")
+        if script_matches(text, language) is True and not any(text in b for _, b in blocks):
+            out.append("a supplied target-language line was changed or omitted: " + text[:60])
+    return out
+
+
+def check_speaker_bindings(prompt):
+    pairs = re.findall(r"<Subject\s+(\d+)>\s*\(S(\d+)\)", prompt or "")
+    subjects, speakers, out = {}, {}, []
+    for subject, speaker in pairs:
+        if subject in subjects and subjects[subject] != speaker:
+            out.append("Subject {} has inconsistent speaker IDs".format(subject))
+        if speaker in speakers and speakers[speaker] != subject:
+            out.append("speaker S{} is assigned to multiple Subjects".format(speaker))
+        subjects[subject], speakers[speaker] = speaker, subject
+    return sorted(set(out))

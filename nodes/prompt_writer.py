@@ -3,10 +3,11 @@
 
 import hashlib
 import json
+import re
 import time
 
 from ..mmh3 import (director_link, guideline, ollama_client, roles,
-                    shotlist, styles, validator, vision)
+                    shotcards, shotlist, styles, validator, vision)
 
 CATEGORY = "MiniMax H3/Prompt"
 
@@ -142,10 +143,9 @@ class MMH3_OllamaPromptWriter:
                                        "step": 64}),
                 "max_words": ("INT", {
                     "default": 500, "min": 150, "max": 2000, "step": 50,
-                    "tooltip": "결과 프롬프트의 목표 단어 수 상한입니다. 하한은 이 값의 "
-                               "70%% 로 잡힙니다(500 이면 350~500). 첫 프레임 모드처럼 "
-                               "이미지를 말로 다시 적어야 할 때 올리면 판독 내용이 더 "
-                               "많이 실립니다. 무작정 올리면 핵심 지시가 묻힐 수 있습니다.",
+                    "tooltip": "목표 단어 수 상한입니다. 최소 분량을 강제하지 않습니다. "
+                               "핵심 행동·카메라·대사·참조 연결을 우선하며 필요한 내용은 "
+                               "상한 때문에 삭제하지 않습니다.",
                 }),
                 "keep_alive": (KEEP_ALIVE_CHOICES, {
                     "default": "0",
@@ -187,6 +187,14 @@ class MMH3_OllamaPromptWriter:
                     "default": "",
                     "tooltip": "Director 노드가 여러 개일 때만 필요합니다. 비워두면 "
                                "하나뿐인 Director를 자동으로 찾습니다.",
+                }),
+                # 맨 뒤에 둡니다 — 저장된 워크플로우의 위젯 값이 밀리지 않게.
+                "continuation": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "이 클립이 이전 클립을 이어받을 때 켭니다. 겹치는 앞부분을 다시 "
+                               "서술하지 않고, 진행 중이던 동작을 이어서 시작하고, 동작이 "
+                               "진행 중인 채로 끝내라는 블록이 붙습니다. H3 Project Hub 의 "
+                               "chain_active 를 연결하면 자동입니다.",
                 }),
             },
             "hidden": {
@@ -233,10 +241,11 @@ class MMH3_OllamaPromptWriter:
             dialogue_mode="none", dialogue_language="English",
             include_soundscape=True, include_music=True,
             dialogue_text="", register="", picture_roles="", custom_style="",
-            extra_directives=""):
+            extra_directives="", continuation=False):
 
         # ---- unpack the composer's spec over the authoring defaults
         spec_note = ""
+        _s = {}
         self._ref_roles = {}
         if isinstance(spec, str) and spec.strip():
             try:
@@ -253,7 +262,7 @@ class MMH3_OllamaPromptWriter:
             pov_mode = _c.get("pov_mode", pov_mode)
             performance = _c.get("performance", performance)
             # extra axes that only exist to switch guideline sections on
-            self._extra_axes = {k: _c.get(k, "") for k in ("viewpoint_change", "ref_framing")}
+            self._extra_axes = {k: _c.get(k, "") for k in ("viewpoint_change", "ref_framing", "multi_shot", "frame_anchor")}
             style = _s.get("style", style)
             custom_style = _s.get("custom_style", custom_style)
             register = _s.get("register", register)
@@ -322,6 +331,11 @@ class MMH3_OllamaPromptWriter:
         # ---- duration
         duration = _safe_int(duration, 0)
         shot_count = _safe_int(shot_count, 0)
+        card_count = _safe_int(_s.get("shot_count"), 0)
+        if shot_count <= 0 and card_count:
+            shot_count = card_count
+        elif card_count and shot_count != card_count:
+            notes.append("[warn] Writer shot_count differs from the shot cards; align the settings.")
         if duration <= 0:
             if d and d["found"] and d["duration"]:
                 duration = int(d["duration"])
@@ -331,6 +345,9 @@ class MMH3_OllamaPromptWriter:
         elif d and d["found"] and d["duration"] and int(d["duration"]) != duration:
             notes.append("duration widget ({}s) differs from the Director ({}s) — "
                          "using {}s.".format(duration, d["duration"], duration))
+
+        for problem in shotcards.cut_time_problems(_s.get("cut_times", []), float(duration)):
+            notes.append("[warn] " + problem)
 
         # ---- style
         if style.startswith("99."):
@@ -518,8 +535,7 @@ class MMH3_OllamaPromptWriter:
         _other = (d.get("other_labels") if d and d.get("found") else None) or []
         _has_audio = any("audio" in str(x).lower() for x in _other)
         if not _has_audio:
-            notes.append("no audio reference — the audio rules block was left out "
-                         "(about 1,200 tokens saved).")
+            notes.append("no audio reference — source-audio relationship rules omitted.")
 
         system = guideline.build_system_prompt(
             mode=resolved, duration=float(duration), shot_hint=int(shot_count),
@@ -533,7 +549,9 @@ class MMH3_OllamaPromptWriter:
             other_items=_other,
             picture_numbers=pic_numbers,
             max_words=_safe_int(max_words, 500),
-            has_audio_refs=_has_audio)
+            has_audio_refs=_has_audio,
+            continuation=bool(continuation),
+            continuation_context=director_link.continuation_context(graph_prompt))
 
         user = guideline.build_user_message(
             brief=writing_brief, mode=resolved, duration=float(duration),
@@ -648,6 +666,16 @@ class MMH3_OllamaPromptWriter:
                     else:
                         notes.append("STILL non-English after 2 passes — use a bigger model "
                                      "(qwen2.5vl:32b) or lower temperature.")
+
+        requested_rows = _s.get("dialogue_rows") or []
+        requested_speech = dialogue_mode in ("speech", "verbatim") or bool(re.search(
+            r"대사|라고\s*(?:말|묻|외치)|says?\b|asks?\b|dialogue", brief, re.IGNORECASE))
+        if dialogue_mode != "none":
+            for problem in validator.check_requested_dialogue(
+                    clean, requested_rows, dialogue_language, requested_speech):
+                notes.append("[warn] dialogue: " + problem)
+        for problem in validator.check_speaker_bindings(clean):
+            notes.append("[warn] voice binding: " + problem)
 
         # ---- did what the vision pass saw actually reach the prompt?
         for problem in validator.check_inventory_coverage(clean, inventories):
