@@ -84,56 +84,39 @@ CAMERA_MOUNT = [
 LENS = [
     ("auto", "auto — 브리프에서 판단", ""),
     ("wide", "wide · 광각 (18–35mm)",
-     "Wide lens: perspective is exaggerated, near things loom and far things fall "
-     "away quickly, more of the room is included, and straight lines bend near the "
-     "frame edges."),
+     "Wide-angle framing with a broad field of view. Keep straight architectural lines straight. "
+     "Perspective depends on camera position; preserve established scene geometry and the chosen camera setup."),
     ("normal", "normal · 표준 (50mm)",
-     "Normal lens: perspective reads as the eye sees it, with no compression and no "
-     "exaggeration."),
+     "Normal-lens framing with a moderate field of view and a natural-looking perspective from the chosen camera position."),
     ("long", "long · 망원 (85mm+)",
-     "Long lens: space is compressed, the background sits flat and close behind the "
-     "subject, and the subject separates from it."),
+     "Telephoto framing with a narrow field of view. A distant camera can make depth appear compressed. "
+     "Keep the chosen camera setup; background sharpness follows the separate depth-of-field setting."),
+    ("fisheye", "fisheye · 어안",
+     "Fisheye lens with an extremely wide field of view and visibly curved straight lines away from the image center."),
 ]
 
 DEPTH_OF_FIELD = [
     ("auto", "auto — 브리프에서 판단", ""),
-    ("deep", "deep focus · 전심 초점",
-     "Deep focus: foreground, subject and background are all sharp."),
-    ("shallow", "shallow · 얕은 심도",
-     "Shallow depth of field: the subject is sharp and everything in front of and "
-     "behind them falls out of focus."),
-    ("rack", "rack focus · 포커스 이동",
-     "Rack focus: focus shifts from one plane to another during the shot. State "
-     "what starts sharp, what ends sharp, and when the shift happens."),
+    ("deep", "deep focus · 전심 초점", "Deep focus: keep the important foreground, subject and background details acceptably sharp."),
+    ("shallow", "shallow · 얕은 심도", "Shallow depth of field: keep the selected subject or focal plane sharp, with increasing softness at other distances."),
+    ("moderate", "moderate · 중간 심도", "Moderate depth of field: the subject and nearby details remain clear while the distant background is gently softened."),
+    ("rack", "rack focus · 포커스 이동", "Rack focus: follow each shot's specified initial focal target, final focal target and timing. A focus change alone does not move the camera or subjects."),
 ]
 
 LIGHTING = [
     ("auto", "auto — 브리프에서 판단", ""),
-    ("soft_front", "soft frontal · 부드러운 정면광",
-     "Soft frontal key: a large soft source near the lens axis; shadows are faint "
-     "and the subject is evenly lit."),
-    ("soft_side", "soft side · 부드러운 측광",
-     "Soft side key: a large soft source roughly 45–90 degrees off axis; one side "
-     "of the face is brighter with a gentle falloff into the other."),
-    ("hard_side", "hard side · 강한 측광",
-     "Hard side key: a small hard source off to one side; the shadow edge on the "
-     "face is sharp and the unlit side goes dark."),
-    ("back", "backlit / rim · 역광·림라이트",
-     "Backlight: the key comes from behind the subject, drawing a bright edge along "
-     "hair and shoulders while the front stays comparatively dark."),
-    ("top", "top light · 톱라이트",
-     "Top light: the source is directly above; brows and nose cast downward shadows "
-     "and the eyes sit in shadow."),
-    ("under", "underlit · 언더라이트",
-     "Underlight: the source is below the face, reversing the usual shadow "
-     "direction."),
-    ("practical", "practical only · 실광원만",
-     "Practical sources only: every bit of light comes from something visible in "
-     "the frame — a lamp, a screen, a window, a fire. Name the source."),
-    ("low_key", "low key · 로우키",
-     "Low key: one dominant source, a very dark fill, most of the frame in shadow."),
-    ("high_key", "high key · 하이키",
-     "High key: bright and evenly filled, very little shadow anywhere."),
+    ("soft_front", "soft frontal · 부드러운 정면광", "Soft frontal key: a large apparent source near the initial viewing axis, with soft shadows and gentle contrast."),
+    ("soft_side", "soft side · 부드러운 측광", "Soft side key: a broad apparent source to the subject's side, shaping the face with gradual shadow transitions."),
+    ("hard_side", "hard side · 강한 측광", "Hard side key: a small apparent source to one side creates sharp shadow edges. Shadow brightness depends on existing fill light."),
+    ("back", "backlit / rim · 역광·림라이트", "Backlighting from beyond the subject in the initial view can outline hair and shoulders. The existing fill determines front-side brightness."),
+    ("top", "top light · 톱라이트", "Top lighting from above the subject creates downward shadows beneath facial features, with softness set by the source."),
+    ("under", "underlit · 언더라이트", "Underlighting from below the subject creates upward facial shadows."),
+    ("practical", "practical only · 실광원만", "Use light sources belonging to the scene, including sources outside the frame. Identify the established sources; they need not appear in every shot."),
+    ("low_key", "low key · 로우키", "Low-key lighting: emphasize darker tones and selective illumination with restrained fill; preserve readable intended details."),
+    ("high_key", "high key · 하이키", "High-key lighting: bright tones and gentle contrast with soft, readable shadows."),
+    ("overcast", "overcast · 흐린 날 확산광", "Broad diffuse daylight from an overcast sky creates soft shadows and gentle contrast where daylight reaches the scene."),
+    ("window", "window daylight · 창문 자연광", "Daylight enters through an established window and falls off into the room. Preserve the window's physical location."),
+    ("golden", "golden hour · 골든아워", "Low-angle warm sunlight with long shadows, preserving the established sun direction and scene layout."),
 ]
 
 POV_MODE = [
@@ -145,11 +128,10 @@ POV_MODE = [
      "Subjective: the camera sits close to one character's viewpoint without "
      "becoming their eyes — over the shoulder or beside the head."),
     ("pov", "POV · 1인칭",
-     "First-person POV: the camera IS a character's eyes, at the eye height of the "
-     "posture they are in. Whatever parts of their own body that posture puts in "
-     "their line of sight are drawn foreshortened; their face, head and back never "
-     "are. Their arms are in shot only while they are using them for something. "
-     "Other characters may look into the lens."),
+     "First-person POV: the camera represents the specified character's eyes. "
+     "Angle and gaze are separate choices; do not default to eye-level framing "
+     "or a horizontal gaze. Show only what enters that view, including visible "
+     "body parts or explicitly requested reflections. Other characters may look toward them."),
 ]
 
 PERFORMANCE = [
@@ -201,6 +183,10 @@ def build_block(choices, register=""):
         if txt:
             lines.append("- {}: {}".format(title.split(" · ")[0], txt))
 
+    if text_for(LIGHTING, choices.get("lighting", "")):
+        lines.append("- Lighting continuity: use the established reference light sources and world-space directions. "
+                     "A camera cut within the same scene changes the visible light direction, not the physical sources. "
+                     "Apply the chosen lighting where compatible; report a conflict with an explicit frame or lighting reference instead of silently relocating lights.")
     perf = text_for(PERFORMANCE, choices.get("performance", ""))
     reg = (register or "").strip()
 

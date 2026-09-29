@@ -94,7 +94,7 @@ def _post_json(url, payload, timeout):
 
 
 def chat(base_url, model, system, user, images=None, options=None,
-         keep_alive="5m", timeout=900, think=False):
+         keep_alive="5m", timeout=900, think=False, return_metadata=False):
     """Non-streaming /api/chat call. Returns the assistant text."""
     url = _norm(base_url) + "/api/chat"
     msg = {"role": "user", "content": user}
@@ -137,7 +137,10 @@ def chat(base_url, model, system, user, images=None, options=None,
         "reply_tokens": int(data.get("eval_count") or 0),
         "done_reason": str(data.get("done_reason") or ""),
     }
-    return (data.get("message", {}) or {}).get("content", "") or ""
+    content = (data.get("message", {}) or {}).get("content", "") or ""
+    if return_metadata:
+        return content, {"done_reason": str(data.get("done_reason") or ""), "done": data.get("done")}
+    return content
 
 
 # Filled in by the most recent chat() call. Read it right after the call.

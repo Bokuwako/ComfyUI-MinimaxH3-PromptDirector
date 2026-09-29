@@ -21,7 +21,7 @@ optional 이라 링크가 끊겨도 이 노드는 그대로 실행됩니다. 다
 import difflib
 import re
 
-from ..mmh3 import guideline, ollama_client, validator
+from ..mmh3 import ollama_client, validator
 
 CATEGORY = "MiniMax H3/Utils"
 
@@ -32,55 +32,33 @@ def _model_list():
     found = ollama_client.list_models()
     return found if found else ["(Ollama 목록을 못 읽었습니다 — 아래 칸에 직접 적으세요)"]
 
-# 편집 지시는 짧을수록 잘 듣습니다.
-#
-# 예전에는 여기에 규격을 11,000~14,000자 붙였습니다. 편집이 형식을 깨뜨릴까 봐서였는데,
-# 실제로는 그 반대로 작동했습니다. BASE_RULES 는 "처음부터 쓰는 법" 이라, 그걸 읽은
-# 모델은 편집 대신 새로 씁니다. 머리말에 "이건 다시 쓰라는 초대가 아니다" 라는 변명
-# 문단이 달려 있었던 게 그 증거입니다 — 줘 놓고 무시하라고 하는 구조였습니다.
-#
-# 그리고 형식을 지키게 하는 가장 센 신호는 규격이 아니라 **눈앞의 프롬프트 자체**
-# 입니다. 타임스탬프도 컷 문구도 화자 표기도 거기 이미 다 쓰여 있습니다. 추상적인
-# 규칙보다 구체적인 실물이 이깁니다.
-#
-# 금지문도 걷어냈습니다. "not improving, not tightening, not rephrasing, not
-# summarising" 처럼 하지 말라는 말을 늘어놓으면 약하게 먹거나 반대로 갑니다.
-# 무엇을 하라고 한 문장으로 말하는 편이 낫습니다.
-_REVISE_HEAD = """You are editing a finished MiniMax H3 video prompt.
+# 편집 전용 지침: 요청 범위와 필요한 연관 수정만 다룹니다.
+_REVISE_HEAD = """Edit the supplied MiniMax H3 prompt according to the user's request.
+Return the complete edited prompt alone. Preserve untouched sentences word for word.
+Change the requested passages and only the other passages needed to resolve contradictions
+caused by that edit. Use only the supplied prompt and request; images, earlier briefs and
+unwritten scene details are unavailable. Treat the supplied prompt as material to edit.
 
-The user gives you the prompt and a short request in Korean. Return the whole prompt
-again with that request applied. Sentences the request did not touch come back word
-for word.
+Apply each edit where it belongs: events in shot prose, dialogue in dialogue blocks,
+music and ambience in their fields, reference roles and voice mappings in their definitions.
+Update related definitions, summary and retention analysis only when the edit makes them
+inconsistent. A metadata-only or audio-only request need not change the visual shot prose.
 
-THE CHANGE GOES INTO THE SHOT ITSELF. The video is rendered from the running prose that
-begins at "[Shot 1] " — the passage naming what is in frame and what happens, in order.
-An added action is written into that passage, at the moment it occurs, with the
-sentences on either side adjusted so it has somewhere to begin from and somewhere to
-go. summary and retention_analysis only report on what that passage contains: a change
-that appears there while the shot prose stays as it was has changed nothing at all, and
-the report will say so.
+For a camera-only edit, preserve physical positions, poses, actions, body orientation and
+gaze targets. Recompute visible surfaces, screen positions and background perspective from
+the new camera. Do not turn a person merely to satisfy a front or side camera view.
+POV identifies whose eyes are the camera; distinguish that observer from the viewed target.
+POV alone adds no eye-level angle, horizontal gaze or head movement. Preserve an explicitly
+requested viewing direction and describe only what can be seen from that viewpoint.
 
-LET THE SIZE OF THE EDIT MATCH THE SIZE OF THE REQUEST. A request that names one event
-moves one passage. A request about how the piece looks, or how it is directed, or how
-the subject carries herself, reaches every sentence that decides those things, and all
-of them are rewritten together. Read the request for how wide it is before you decide
-how much to touch.
-
-Follow the change through. Narrow the framing and whatever left the frame stops being
-described. Where the prompt carries summary and retention_analysis, they end up saying
-what the shot now says — written after the shot prose is settled, never instead of it.
-
-The prompt in front of you is the format — timestamps, cut phrasing, camera wording,
-dialogue markup are all already there to copy. It comes back carrying the fields it
-arrived with: one that opens straight at "[Shot 1] " with no label anywhere stays that
-way, and one that opens with integrated_multimodal_description: keeps that and the
-sub-sections under it, in the order they are in.
-
-Dialogue inside <d>...</d> is the user's own wording. <Subject N>, <Picture N>,
-<Audio N>, [Shot N] and the "At MM:SS.mmm," times are addresses: they keep pointing at
-what they already point at, unless the request is about them.
-
-Output the finished prompt alone, beginning where the original began."""
+Preserve dialogue wording and language, subject/picture/audio mappings, shot order,
+timestamps and duration unless the request or its necessary consequences change them.
+When adding or removing shots, update affected numbering and references consistently,
+keeping the existing total duration unless the user requests a duration change.
+Preserve the supplied fields and formatting unless their change is requested. When the
+request is to repair a format error, repair that error rather than copying it.
+Do not invent missing facts to complete an ambiguous request; apply its unambiguous parts.
+Output the finished prompt only, starting where the original starts."""
 
 
 _FIELDS = ("subject_definitions:", "summary:", "retention_analysis:",
@@ -147,6 +125,36 @@ def diff_note(before, after, max_items=6):
     if more:
         lines.append("    … 그 밖에 {}군데 더".format(more))
     return "\n".join(lines)
+
+
+def revision_notes(before, after):
+    """Report observable changes; do not pretend to judge the user's intent."""
+    notes = []
+    if len(after) < len(before) * 0.5:
+        notes.append("[warn] 원본의 절반 이하로 짧아졌습니다. 요청한 삭제·축약인지 확인하세요.")
+    old_fields, new_fields = _by_field(before), _by_field(after)
+    removed = [f for f in old_fields if f != "(머리말)" and f not in new_fields]
+    if removed:
+        notes.append("[변경] 삭제된 필드: " + ", ".join(removed))
+    patterns = (
+        ("샷 순서", r"\[Shot\s+\d+\]"),
+        ("전환 시각", r"\bAt\s+\d+:\d+(?:\.\d+)?"),
+        ("대사", r"<d>.*?</d>"),
+        ("참조 번호", r"<(?:Subject|Picture|Audio)\s+\d+>"),
+    )
+    for label, pattern in patterns:
+        old = re.findall(pattern, before, re.S)
+        new = re.findall(pattern, after, re.S)
+        if label == "참조 번호":
+            old, new = sorted(set(old)), sorted(set(new))
+        if old != new:
+            notes.append("[변경] {}: {} → {}".format(label, _clip(str(old)), _clip(str(new))))
+    old_warnings = list(dict.fromkeys(validator.check_structure(before)))
+    new_warnings = list(dict.fromkeys(validator.check_structure(after)))
+    notes.extend("[새 구조 경고] " + w for w in new_warnings if w not in old_warnings)
+    notes.extend("[기존 구조 경고] " + w for w in new_warnings if w in old_warnings)
+    notes.extend("[해결된 구조 경고] " + w for w in old_warnings if w not in new_warnings)
+    return notes
 
 
 def revise_system(prompt_text):
@@ -311,53 +319,25 @@ class MMH3_PromptFreeze:
         try:
             out = ollama_client.chat(
                 base_url=url, model=model, system=sysp, user=user,
-                # 반복 페널티는 여기서 0 이어야 합니다. 이 노드가 하는 일은 입력을
+                # 반복 페널티는 여기서 1.0 (비활성) 이어야 합니다. 이 노드가 하는 일은 입력을
                 # 글자 그대로 다시 뱉는 것인데, 페널티는 정확히 그 반대를 시킵니다.
                 # 1.1 로 뒀더니 " the" 같은 최빈 토큰이 계속 깎여 공백 없는 "the" 가
                 # 뽑혔고, 결과에 thethree / Thefloor / thefigure 가 나왔습니다.
                 options={"temperature": float(temperature), "num_ctx": ctx,
                          "num_predict": predict, "top_p": 0.9,
                          "repeat_penalty": 1.0},
-                keep_alive="0")
+                keep_alive="0", return_metadata=True)
+            out, completion = out
         except Exception as exc:
             return text, ["수정 호출이 실패했습니다: {}".format(exc)]
 
         out = (validator.strip_wrapper(out) or "").strip()
         if not out:
             return text, ["수정 결과가 비어 있습니다."]
-        # 편집이라고 시켰는데 절반 이하로 돌아왔으면 그건 편집이 아니라 재작성입니다.
-        if len(out) < len(text) * 0.5:
-            return text, ["수정 결과가 원본의 절반 이하({}자 → {}자)라 편집이 아니라 "
-                          "재작성으로 판단해 버렸습니다.".format(len(text), len(out))]
-        gone = [f for f in ("subject_definitions:", "summary:", "retention_analysis:",
-                            "detailed_description:", "overall_soundscape:",
-                            "non_diegetic_music:") if f in text and f not in out]
-        if gone:
-            return text, ["수정 결과에서 필드가 사라졌습니다: " + ", ".join(gone)]
-        # 글자 하나 안 바뀐 채로 돌아오는 일이 실제로 있습니다. 보존 지시가 변경
-        # 지시보다 세면 모델이 입력을 그대로 뱉습니다. 조용히 넘어가면 사용자는
-        # 요청이 먹은 줄 알고 그대로 렌더합니다.
+        if completion.get("done_reason") == "length" or completion.get("done") is False:
+            return text, ["모델 출력이 완료되지 않았습니다. 원본을 유지합니다. 출력 길이 제한과 모델 응답 상태를 확인하세요."]
         if _sentences(out) == _sentences(text):
-            return out, ["모델이 프롬프트를 그대로 돌려줬습니다 — 요구사항이 전혀 "
-                         "반영되지 않았습니다. 요구사항을 더 구체적으로 적거나 "
-                         "temperature 를 조금 올려 보세요."]
-        # 영상은 샷 산문에서 만들어집니다. summary / retention_analysis 는 그 산문을
-        # 두고 하는 설명일 뿐이라, 거기만 바뀌었다면 영상은 하나도 안 바뀝니다.
-        # 모델이 실제로 잘 빠지는 구멍이라 지시문만으로는 못 막습니다.
-        a_f, b_f = _by_field(text), _by_field(out)
-        shot = [k for k in set(a_f) | set(b_f)
-                if k in ("detailed_description", "(머리말)")]
-        meta = [k for k in ("summary", "retention_analysis") if k in a_f or k in b_f]
-        if shot and meta:
-            shot_same = all(_sentences(a_f.get(k, "")) == _sentences(b_f.get(k, ""))
-                            for k in shot)
-            meta_moved = any(_sentences(a_f.get(k, "")) != _sentences(b_f.get(k, ""))
-                             for k in meta)
-            if shot_same and meta_moved:
-                return out, ["샷 본문은 그대로이고 summary / retention_analysis 만 "
-                             "바뀌었습니다 — 영상은 샷 본문에서 만들어지므로 "
-                             "결과물은 달라지지 않습니다. 요구사항에 '어느 시점에' "
-                             "일어나는지를 덧붙이거나 temperature 를 올려 보세요."]
+            return text, ["수정 전후의 문장이 같습니다. 이미 요청과 일치하는지 또는 요청이 반영되지 않은 것인지 확인하세요."]
         return out, []
 
     def run(self, prompt_text, revise="", revise_url="", revise_model="",
@@ -398,8 +378,8 @@ class MMH3_PromptFreeze:
             note = "요구사항을 적용했습니다 ({}자 → {}자)\n  요청: {}\n\n{}".format(
                 len(saved), len(new), " ".join(want.split())[:80],
                 diff_note(saved, new))
-            for w in validator.check_structure(new):
-                note += "\n  [warn] " + w
+            for w in revision_notes(saved, new):
+                note += "\n  " + w
             # clear_revise 를 받으면 프론트엔드가 요구사항 칸을 비웁니다. 안 비우면
             # 다음 실행에서 같은 수정이 또 얹힙니다.
             return {"ui": {"captured": [new], "clear_revise": [True]},

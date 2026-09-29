@@ -49,12 +49,12 @@ class MMH3_ShotSettings:
                 "theme": (themes.labels(), {
                     "tooltip": "장르입니다. 화풍(style)이 매체를 정하고 이쪽이 장르를 "
                                "정합니다 — '2D 애니' + '그라비아 화보' 는 애니 화보가 "
-                               "됩니다. 브리프 앞에 장르 이름 한 줄이 들어가고, 조명·"
-                               "구도·의상은 모델이 그 장르 지식대로 고릅니다.",
+                               "됩니다. 브리프 앞에 장르 이름 한 줄이 들어가고, 명시한 설정은 유지하고,"
+                               "비어 있는 선택만 장르에 맞춰 채웁니다.",
                 }),
                 "lens": (sl(shotlist.LENS), {
                     "default": sl(shotlist.LENS)[0],
-                    "tooltip": "초점거리. 광각은 원근이 과장되고, 망원은 배경이 납작해집니다.",
+                    "tooltip": "렌즈의 화각을 선택합니다. 원근은 카메라 위치와 함께 결정되며 심도는 별도 설정입니다.",
                 }),
                 "depth_of_field": (sl(shotlist.DEPTH_OF_FIELD), {
                     "default": sl(shotlist.DEPTH_OF_FIELD)[0],
@@ -109,6 +109,10 @@ class MMH3_ShotSettings:
                     "tooltip": "금지의 반대입니다. 빠지면 안 되는 사건을 한 줄에 하나씩 적으면 "
                                "빠뜨리지 말라는 지시와 함께 브리프에 들어갑니다.",
                 }),
+            },
+            "optional": {
+                "custom_style": ("STRING", {"default": "", "multiline": True,
+                    "tooltip": "Style에서 Custom을 선택했을 때 사용할 화풍 설명입니다."}),
             }
         }
 
@@ -122,5 +126,5 @@ class MMH3_ShotSettings:
             "style", "lens", "depth_of_field", "lighting_key", "dialogue_mode",
             "dialogue_language", "include_soundscape", "include_music",
             "must_not", "must_happen", "progression", "progression_seed",
-            "progression_target", "theme")},
+            "progression_target", "theme", "custom_style")},
             ensure_ascii=False),)

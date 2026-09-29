@@ -65,11 +65,10 @@ def block(label):
     genre = (theme.get("genre") or "").strip()
     if not genre:
         return ""
-    out = ["테마: {} ({}). 이 장르가 무엇인지는 네가 안다 — 조명, 구도, 렌즈, 의상, "
-           "장소, 인물이 카메라를 대하는 태도를 그 지식대로 골라라. 고른 것들이 서로 "
-           "어울려야 한다: 장소에 맞는 의상, 그 시간대에 맞는 빛, 그 공간에서 자연스러운 "
-           "자세. 아래 '내용' 과 '카메라' 가 정한 것은 그대로 두고, 그것들이 말하지 않은 "
-           "부분만 이 장르답게 채워라.".format(theme.get("label") or label, genre)]
+    out = ["테마: {} ({}). 장르와 분위기를 정한다. 표현 매체와 화풍은 Style을 따른다. "
+           "내용·샷 선택·참조 역할·렌즈·심도·조명·대사·음악 설정이 정한 사항을 유지한다. "
+           "남은 선택만 장르에 맞춰 채운다. 장르만으로 새로운 인물·사건·의상 변경을 "
+           "추가하지 않는다.".format(theme.get("label") or label, genre)]
     note = (theme.get("note") or "").strip()
     if note:
         out.append("  " + note)

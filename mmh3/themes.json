@@ -13,25 +13,149 @@
       "'2D 애니' + '그라비아 화보' 는 애니 화보가 됩니다."
     ]
   },
-
-  "gravure":      { "label": "그라비아 화보",        "genre": "Japanese gravure photobook", "note": "" },
-  "portrait":     { "label": "감성 포트레이트",       "genre": "soft emotive portrait photography", "note": "" },
-  "lookbook":     { "label": "패션 룩북",           "genre": "fashion lookbook editorial", "note": "" },
-
-  "drama":        { "label": "시네마틱 드라마",       "genre": "cinematic narrative drama", "note": "" },
-  "sliceoflife":  { "label": "일상 (슬라이스 오브 라이프)", "genre": "slice-of-life", "note": "카메라 자리에 아무도 없다. 인물은 촬영되고 있다는 것을 모른다." },
-  "vlog":         { "label": "브이로그",            "genre": "first-person vlog", "note": "카메라는 인물이 직접 들고 있거나 어딘가에 올려둔 기기다. 인물이 렌즈에 대고 말한다." },
-  "documentary":  { "label": "다큐멘터리",           "genre": "observational documentary", "note": "" },
-
-  "horror":       { "label": "호러 / 서스펜스",      "genre": "horror and suspense", "note": "" },
-  "noir":         { "label": "느와르 / 스릴러",      "genre": "film noir thriller", "note": "" },
-  "action":       { "label": "액션",               "genre": "action", "note": "" },
-
-  "fantasy":      { "label": "판타지 / 이세계",      "genre": "high fantasy and isekai", "note": "" },
-  "cyberpunk":    { "label": "사이버펑크 네온",       "genre": "neon cyberpunk", "note": "" },
-  "scifi":        { "label": "SF",                "genre": "science fiction", "note": "" },
-
-  "musicvideo":   { "label": "뮤직비디오",           "genre": "music video", "note": "" },
-  "commercial":   { "label": "광고 / 제품 CF",       "genre": "high-end commercial product film", "note": "" },
-  "travel":       { "label": "여행 필름",           "genre": "travel film", "note": "" }
+  "gravure": {
+    "label": "그라비아 화보",
+    "genre": "Japanese gravure photobook",
+    "note": ""
+  },
+  "portrait": {
+    "label": "감성 포트레이트",
+    "genre": "soft emotive portrait",
+    "note": ""
+  },
+  "lookbook": {
+    "label": "패션 룩북",
+    "genre": "fashion lookbook editorial",
+    "note": ""
+  },
+  "drama": {
+    "label": "시네마틱 드라마",
+    "genre": "cinematic narrative drama",
+    "note": ""
+  },
+  "sliceoflife": {
+    "label": "일상 (슬라이스 오브 라이프)",
+    "genre": "slice-of-life",
+    "note": "일상의 분위기를 적용하되 시점·시선·발화 여부는 샷과 대사 설정을 따른다."
+  },
+  "vlog": {
+    "label": "브이로그",
+    "genre": "vlog",
+    "note": "친근하고 일상적인 전달감을 적용한다. 시점·카메라 소유자·렌즈 응시·발화 여부는 명시된 설정을 따른다."
+  },
+  "documentary": {
+    "label": "다큐멘터리",
+    "genre": "observational documentary",
+    "note": ""
+  },
+  "horror": {
+    "label": "호러 / 서스펜스",
+    "genre": "horror and suspense",
+    "note": ""
+  },
+  "noir": {
+    "label": "느와르 / 스릴러",
+    "genre": "film noir thriller",
+    "note": ""
+  },
+  "action": {
+    "label": "액션",
+    "genre": "action",
+    "note": ""
+  },
+  "fantasy": {
+    "label": "판타지 / 이세계",
+    "genre": "high fantasy and isekai",
+    "note": ""
+  },
+  "cyberpunk": {
+    "label": "사이버펑크 네온",
+    "genre": "neon cyberpunk",
+    "note": ""
+  },
+  "scifi": {
+    "label": "SF",
+    "genre": "science fiction",
+    "note": ""
+  },
+  "musicvideo": {
+    "label": "뮤직비디오",
+    "genre": "music video",
+    "note": ""
+  },
+  "commercial": {
+    "label": "광고 / 제품 CF",
+    "genre": "high-end commercial product film",
+    "note": ""
+  },
+  "travel": {
+    "label": "여행 필름",
+    "genre": "travel film",
+    "note": ""
+  },
+  "romance": {
+    "label": "로맨스",
+    "genre": "romance",
+    "note": ""
+  },
+  "comedy": {
+    "label": "코미디",
+    "genre": "comedy",
+    "note": ""
+  },
+  "romcom": {
+    "label": "로맨틱 코미디",
+    "genre": "romantic comedy",
+    "note": ""
+  },
+  "mystery": {
+    "label": "미스터리",
+    "genre": "mystery",
+    "note": ""
+  },
+  "period": {
+    "label": "시대극",
+    "genre": "period drama",
+    "note": ""
+  },
+  "adventure": {
+    "label": "모험",
+    "genre": "adventure",
+    "note": ""
+  },
+  "sports": {
+    "label": "스포츠",
+    "genre": "sports drama",
+    "note": ""
+  },
+  "horror_only": {
+    "label": "호러",
+    "genre": "horror",
+    "note": ""
+  },
+  "suspense": {
+    "label": "서스펜스",
+    "genre": "suspense",
+    "note": ""
+  },
+  "noir_only": {
+    "label": "느와르",
+    "genre": "film noir",
+    "note": ""
+  },
+  "thriller": {
+    "label": "스릴러",
+    "genre": "thriller",
+    "note": ""
+  },
+  "fantasy_only": {
+    "label": "판타지",
+    "genre": "fantasy",
+    "note": ""
+  },
+  "isekai": {
+    "label": "이세계",
+    "genre": "isekai",
+    "note": ""
+  }
 }

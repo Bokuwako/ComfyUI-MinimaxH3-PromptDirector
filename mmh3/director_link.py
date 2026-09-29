@@ -236,11 +236,13 @@ def load_items(items, max_side=1024):
             if mp:
                 media_prompts.append("{}: {}".format(name, mp))
         except Exception as e:
+            if it.get("_external_image"):
+                raise RuntimeError("Failed to encode external image 1: " + path) from e
             notes.append("Failed to read '{}': {}".format(name, e))
     return b64, names, media_prompts, notes, numbers
 
 
-def read_director(prompt_graph, node_id_hint=""):
+def read_director(prompt_graph, node_id_hint="", external_image_1_path=None):
     """
     Read the Director's state. Images are NOT loaded here — the caller resolves the
     final mode first (a manual override may differ from the Director's) and then calls
@@ -286,6 +288,18 @@ def read_director(prompt_graph, node_id_hint=""):
             imgs, others = parse_timeline(bs)
         except Exception:
             pass
+
+    path_input = (node.get("inputs") or {}).get("external_image_1_path")
+    if path_input is not None and external_image_1_path is None:
+        raise ValueError("Director uses external_image_1_path but Writer did not receive it. Refresh ComfyUI; API callers must connect the same FILE PATH to both nodes.")
+    if external_image_1_path is not None:
+        path = validate_external_path(external_image_1_path)
+        item = dict(imgs[0]) if imgs else {"type": "image", "enabled": True}
+        for key in ("tensor", "prompt", "media_prompt", "width", "height"):
+            item.pop(key, None)
+        item.update(value=path, slot=0, _pic=1, _external_image=True)
+        imgs = [item] + imgs[1:]
+        out["notes"].append("External image 1: " + path)
 
     out["raw_mode"] = raw_mode
     mode, note = _norm_mode(raw_mode, len(imgs))
@@ -364,3 +378,20 @@ def continuation_context(prompt_graph):
                 "times. [Shot 1] starts at 0 seconds with new continuation; "
                 "there is no leading overlap to subtract from the clip duration.")
     return ""
+
+
+def validate_external_path(value):
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("external_image_1_path must be a non-empty file path")
+    path = os.path.abspath(value.strip())
+    if not os.path.isfile(path):
+        raise ValueError("External image 1 not found: " + path)
+    return path
+
+
+def external_path_fingerprint(value):
+    if value is None:
+        return ""
+    path = validate_external_path(value)
+    stat = os.stat(path)
+    return repr((path, stat.st_size, stat.st_mtime_ns))

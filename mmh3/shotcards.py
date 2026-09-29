@@ -46,13 +46,11 @@ VIEWPOINT = [
     # 자체를 그 오프닝 구도 명사구로 씁니다. 다른 사이즈 항목과 같은 모양이니 알아서
     # 첫머리 자리에 들어가고, "먼저 써라" 라고 명령할 필요가 없습니다.
     #
-    # 높이는 자세가 정합니다. 서 있는 사람의 POV 인데 "카메라는 그의 엉덩이 높이에"
-    # 로 나온 적이 있어서, 무엇을 보고 있는지가 아니라 자세를 기준으로 못박습니다.
+    # POV identifies the observer; angle and gaze are separate optional settings.
     ("pov", "1인칭 POV",
      "카메라가 그 인물의 눈입니다. 그 인물은 형체로 보이지 않고, 자기 시야에 들어오는 "
      "자기 몸만 보입니다.",
-     "a POV shot seen from {who}'s own eyes, at the eye height of the posture they are "
-     "actually in"),
+     "a first-person POV through {who}'s own eyes"),
 ]
 
 # 시점의 주인. 레퍼런스 이미지 번호, 이 샷의 당사자, 또는 지켜보는 제3자.
@@ -179,10 +177,10 @@ TRANSITION = [
 # keyframe completion 이고, REF2VA 에서도 유효합니다 (H3 는 refs 와 keyframes 를 함께 받고,
 # 풀레퍼런스 가이드도 keyframe completion 태스크 타입을 정의합니다).
 REF_ROLE = [
-    ("", "미사용", "이 이미지는 이 영상에서 쓰지 않습니다.", ""),
+    ("", "용도 미지정", "용도를 지정하지 않습니다. 연결된 이미지 입력은 그대로 사용됩니다. 제외하려면 실제 입력 연결을 제거하세요.", ""),
     # 이 줄들의 한글 설명은 UI 툴팁이면서 동시에 브리프에 들어가는 지시문입니다
     # (refs_block 이 그대로 씁니다). 화면 문구가 아니라 지시로 읽히게 써야 합니다.
-    ("character", "캐릭터 / 인물",
+    ("character", "캐릭터 (의상 제외)",
      "인물의 얼굴·머리·눈·체형만 가져옵니다. 입고 있는 옷은 가져오지 않습니다.",
      "governs that character's face, hair, eyes and body proportions only; "
      "their clothing does not transfer"),
@@ -212,17 +210,8 @@ REF_ROLE = [
      "this picture shows: its shape, size and colour, and the body hair around it. Use "
      "that plain word in the prompt; never write pubic area, groin, crotch, private "
      "parts or any other euphemism. Nothing else transfers from it."),
-    ("face", "얼굴 / 작화",
-     "이 이미지가 얼굴의 최종 기준입니다. 눈매·눈동자·코·입·턱선과 그려진 방식(선 굵기, "
-     "채색, 음영)까지 이 이미지를 따릅니다. 다른 이미지와 얼굴이 다르면 이 이미지가 이깁니다. "
-     "몸·의상·배경은 가져오지 않습니다. 얼굴을 말로 자세히 풀어쓰라.",
-     "is the AUTHORITY for that character's face and for how the face is drawn: eye shape, "
-     "iris and highlight rendering, brows, how the nose and mouth are simplified, jaw and "
-     "chin line, hair shape, plus line weight and shading style. Where another picture "
-     "disagrees about the face, this one wins. Body, wardrobe and background do not "
-     "transfer from it. Write the face out in words."),
-    ("background", "배경 / 장소", "장소와 공간을 이 이미지에서 가져옵니다.",
-     "governs the environment"),
+    ('face', '얼굴 정체성 / 작화 참조', '얼굴 생김새를 참조합니다. 화풍은 명시한 Style을 우선하며 Auto일 때 참조 작화를 사용합니다. 몸·의상·배경은 제외합니다.', 'supplies facial identity; explicit Style governs rendering'),
+    ('background', '배경 / 장소', '장소의 실제 공간 구조·소품 배치·광원을 참조합니다. 화면 좌표와 원근은 각 샷의 카메라에서 다시 정합니다.', 'supplies the environment and world-space relationships; each shot determines perspective'),
     ("pose", "자세 / 포즈", "몸의 자세만 가져옵니다. 얼굴·의상·배경은 가져오지 않습니다.",
      "supplies the body pose only; face, hair, clothing and background do not transfer"),
     ("outfit", "의상", "옷과 그 상태를 이 이미지에서 가져옵니다.", "governs the wardrobe"),
@@ -235,30 +224,10 @@ REF_ROLE = [
     # 이걸 '캐릭터' 나 '얼굴' 로 지정하면 역할은 얼굴을 보존하라 하고 시점은 얼굴이
     # 안 보인다고 해서, 모델이 둘 다 만족시키려고 인물을 둘로 쪼갭니다 — POV 대상이
     # 여자인데 카메라용 남자를 새로 만들어 낸 실제 사례가 있었습니다.
-    ("pov_self", "◉ 카메라 인물 (1인칭)",
-     "이 인물이 카메라입니다. 자기 시야에 들어오는 자기 몸의 피부색과 그 부위의 옷만 "
-     "이 이미지에서 가져오고, 얼굴·머리·표정은 가져오지 마라 — 화면에 없습니다. "
-     "이 인물을 형체로 그리지 말고, 카메라를 맡을 인물을 따로 만들지도 마라. "
-     "시점을 '1인칭 POV' 로 두고 그 대상을 이 이미지로 지정해서 함께 쓰세요.",
-     "is the person whose eyes the camera is. It governs the skin tone and the clothing "
-     "on whatever parts of their own body fall within their own line of sight in the "
-     "posture they are in. Do not take the face, hair or expression from it: none of "
-     "that is on screen. Give this person a <Subject N> whose line says that, and never "
-     "invent a second person to hold the camera"),
-    ("ots_self", "◉ 어깨너머 인물",
-     "이 인물은 화면 앞쪽에 어깨와 뒤통수만 걸칩니다. 머리 모양·머리색·어깨선·체격은 "
-     "이 이미지에서 가져오되, 얼굴·눈·표정은 가져오지 마라 — 뒤통수만 보입니다. "
-     "얼굴을 보여주려고 인물을 돌리지 마라. 시점을 '어깨너머' 로 두고 그 대상을 이 "
-     "이미지로 지정해서 함께 쓰세요.",
-     "is the person whose shoulder and the back of whose head sit in the near "
-     "foreground. It governs the hair shape and colour, the shoulder line and the build. "
-     "Do not take the face, eyes or expression from it — only the back of the head is "
-     "visible — and never turn the figure round to show the face"),
-
-    ("first_frame", "★ 첫 프레임", "이 이미지가 0.00초 첫 프레임이 됩니다. REF2VA 에서도 됩니다.",
-     "is the first frame of [Shot 1] at 0.00 seconds"),
-    ("last_frame", "★ 마지막 프레임", "이 이미지가 마지막 샷의 끝 프레임이 됩니다.",
-     "is the final frame of the last shot"),
+    ('pov_self', '◉ POV 인물 참조', '인물의 정체성·의상을 참조합니다. 자기 시야 제한은 이 인물을 POV 대상으로 지정한 샷에만 적용하며, 다른 샷에서는 보이는 외형을 사용합니다.', 'supplies identity across shots; self-view visibility applies only in assigned POV shots'),
+    ('ots_self', '◉ 어깨너머 인물 참조', '인물의 정체성·의상을 참조합니다. 어깨·뒤통수 전경 배치는 해당 어깨너머 샷에만 적용하며, 다른 샷의 얼굴 표시를 제한하지 않습니다.', 'supplies identity across shots; foreground shoulder framing applies only in assigned shoulder shots'),
+    ('first_frame', '★ 첫 프레임', '샷 1의 0초 화면 기준입니다. 생성 노드의 실제 프레임 입력 연결은 별도로 확인하세요.', 'is the requested first frame at 0.00 seconds of Shot 1'),
+    ('last_frame', '★ 마지막 프레임', '마지막 샷의 종료 화면 기준입니다. 생성 노드의 실제 프레임 입력 연결은 별도로 확인하세요.', 'is the requested final frame of the final shot'),
 ]
 
 FRAME_ROLES = ("first_frame", "last_frame")
@@ -352,6 +321,8 @@ def who_label(target, names=None):
         return "이 샷의 남자"
     if target == VP_TARGET_WOMAN:
         return "이 샷의 여자"
+    if str(target).startswith("named:"):
+        return str(target)[6:]
     if str(target).startswith("pic:"):
         return "이미지 {}의 인물".format(str(target)[4:])
     return str(target)
@@ -367,6 +338,8 @@ def who_label_en(target):
         return "the man in this shot"
     if target == VP_TARGET_WOMAN:
         return "the woman in this shot"
+    if str(target).startswith("named:"):
+        return str(target)[6:]
     if str(target).startswith("pic:"):
         return "the person in reference image {}".format(str(target)[4:])
     return str(target)
@@ -498,7 +471,24 @@ def effective_cards(cards):
     for i in range(1, len(result)):
         if is_same_moment(result[i]):
             result[i]["text"] = ""
-            result[i]["acts"] = [dict(a, a_pos="", b_pos="")
+            for key in ("body_actor", "body_target", "gaze_actor", "gaze_target"):
+                old, new = result[i - 1].get(key, ""), result[i].get(key, "")
+                if key in ("body_target", "gaze_target"):
+                    def anchor(value):
+                        if value not in ("camera", "away_camera"):
+                            return value
+                        prefix = "the direction away from " if value == "away_camera" else ""
+                        return "named:" + prefix + "the camera position used in Shot {}".format(i)
+                    old, new = anchor(old), anchor(new)
+                if old and new and old != new:
+                    raise ValueError("같은 순간—카메라만 바뀜에서는 몸 방향·시선을 바꿀 수 없습니다. 이어지는 동작을 선택하세요.")
+                result[i][key] = new or old
+            for key in ("body_target", "gaze_target"):
+                target = result[i].get(key)
+                if target in ("camera", "away_camera"):
+                    prefix = "the direction away from " if target == "away_camera" else ""
+                    result[i][key] = "named:" + prefix + "the camera position used in Shot {}".format(i)
+            result[i]["acts"] = [dict(a, a_pos="", b_pos="", at=None, inherited=True)
                                  for a in (result[i - 1].get("acts") or [])]
     return result
 
@@ -529,10 +519,13 @@ def continuity_line(card, n):
     link = (card or {}).get("link") or ""
     if link == "new_scene":
         return "새 장면: 이 샷에서 지정한 장소와 시간을 사용하고 인물의 정체성과 의상은 유지한다."
-    state = "자세와 진행 중인 행동까지" if link == "same_moment" else "행동의 흐름을"
-    return ("연속성: 샷 {}의 인물·의상·실제 공간 구조·광원과 {} 이어받는다. "
-            "이 샷에서 보이는 식별 특징만 간결하게 적는다. 화면 속 위치와 보이는 면, "
-            "구도와 화면 기준 조명 방향은 이 샷의 카메라에서 다시 정한다."
+    state = ("컷 직후에는 앞 샷과 같은 순간의 자세·행동 상태에서 시작한다. "
+             if link == "same_moment" else
+             "컷 직후에는 앞 샷의 행동 흐름에서 시작한다. ")
+    return ("연속성: 샷 {}의 인물·의상·실제 공간 구조·광원을 이어받는다. "
+            "{}이후에는 이 샷에 명시한 추가 동작의 순서에 따라 위치·자세·시선이 변한다. "
+            "추가 동작이 없으면 카메라 변경만으로 인물을 이동·회전시키지 않는다. "
+            "이 샷에서 실제로 보이는 식별 특징만 간결하게 적는다."
             .format(prev, state))
 
 
@@ -601,84 +594,123 @@ def recompose_line(card, n, refs=None):
     # "이 샷의 카메라가 정한다" 로 쓰면 바로 위 내용 줄의 "구도는 이 내용이 정한다" 와
     # 부딪힙니다. 시점을 내용 칸에 쓰는 사람도, 카메라 드롭다운으로 고르는 사람도 있어서
     # 둘 다 가리키게 적습니다.
-    return ("매치컷은 명시한 매칭 요소만 유지한다. "
-            "구도: 샷 {p}에서 컷으로 넘어왔고, 이 샷의 구도는 이 샷에서 지정한 시점 — 위 "
-            "내용과 카메라 줄 — 이 정한다. "
-            "샷 {p}에서 이어받는 것은 인물들이 서로에 대해 어떻게 놓였는지 — 누가 누구 "
-            "옆에 있고 누구를 보는지 — 와 자세다. 화면 속 자리와 몸의 어느 면이 렌즈에 "
-            "보이는지는 이 샷의 카메라 기준으로 새로 적는다. 샷 {p}에서 화면을 기준으로 "
-            "쓴 말(화면 왼쪽, 화면 오른쪽, 구석, 카메라를 향함, 등이 보임, 뒤통수)은 이 "
-            "샷으로 옮기지 않는다. {w} 이 카메라에 대해 어느 쪽을 향하고 화면 어디에 "
-            "있는지를 한 사람씩 따로 한 문장으로 적어라.").format(p=prev, w=who)
+    matching = ("매치컷은 명시한 매칭 요소만 유지한다. "
+                if card.get("transition") == "match" else "")
+    return (matching + "구도: 이 샷의 내용과 카메라 선택에서 정한 시점으로 서술한다. "
+            "화면 속 위치·보이는 면·가림·화면 기준 조명 방향을 새 시점에서 계산하고, "
+            "앞 샷의 화면 좌표나 구도에 의존한 문장을 재사용하지 않는다. "
+            "{w}의 몸 방향과 시선, 카메라에 보이는 면을 구분하여 필요한 만큼 서술한다."
+            ).format(w=who)
+
+
+
+def camera_target_name(value):
+    if value == "scene":
+        return "the scene as a whole"
+    if value == "camera":
+        return "the camera"
+    if value == "away_camera":
+        return "away from the camera"
+    if str(value or "").startswith("named:"):
+        return str(value)[6:]
+    return who_label_en(value) if value else "the framed subject"
+
+
+def orientation_sentence(card):
+    bits = []
+    for kind, label in (("body", "몸 방향"), ("gaze", "시선")):
+        actor, target = card.get(kind + "_actor"), card.get(kind + "_target")
+        if not actor and not target:
+            continue
+        if not actor or not target:
+            raise ValueError(label + ": 누가/어디로를 모두 지정하세요.")
+        if actor == target:
+            raise ValueError(label + ": 자기 자신을 방향 대상으로 지정할 수 없습니다.")
+        person = camera_target_name(actor)
+        destination = camera_target_name(target)
+        if kind == "body":
+            bits.append(person + (" faces away from the camera" if target == "away_camera"
+                        else " orients their torso toward " + destination)
+                        + "; this specifies body orientation, not gaze")
+        else:
+            bits.append(person + (" looks away from the camera" if target == "away_camera"
+                        else " looks toward " + destination)
+                        + "; this specifies gaze, not a torso turn")
+    return ". ".join(bits)
 
 
 def camera_sentence(card, who, frame_anchored=False):
-    """This card's camera as explicit instructions.
-
-    The English directive is what goes out, not the Korean dropdown label: a bare noun
-    list ("와이드, 눈높이, 정면") reads as loose keywords and the writer silently drops
-    the ones it considers obvious, which is how a chosen facing never reaches the prompt.
-    The Korean label rides along in brackets so the line stays readable next to the rest
-    of the brief.
-    """
+    """Observer, viewing angle, viewing side and framing have separate targets."""
     bits = []
-    # POV 는 카메라 높이를 "그 인물의 눈" 으로 못박습니다. 그 위에 앵글을 또 얹으면
-    # "눈높이" 와 "아래에서 올려다봄" 이 한 줄에서 싸우고, 실제로 카메라가 붕 떴습니다.
     pov = card.get("viewpoint") == "pov"
-    # 첫 프레임이 지정된 샷에서는 구도를 이미지가 정합니다. 여기서 샷 사이즈나 앵글을
-    # 또 말하면 "이렇게 잡아라" 라는 지시가 되어 0.00초의 프레임을 다시 짜버립니다.
-    # 카메라 움직임(모션)은 0초 이후의 일이라 그대로 둡니다.
-    framing = () if frame_anchored else ("size", "shot_type", "angle", "facing")
-    # POV 자체가 오프닝 구도 명사구입니다. 여기에 사이즈를 또 얹으면 한 줄에서
-    # "a POV shot seen from his own eyes; a medium shot framed from the waist up" 이
-    # 되어 구도가 둘이 되고, 뒤에 온 쪽이 앞의 것을 덮습니다 — 예전에는 POV 문장이
-    # 직접 "'a medium shot' 으로 시작하지 마라" 라고 쓰면서 그 바로 다음 항목이
-    # 그 문구를 내보내는 상태였습니다.
-    if pov:
-        framing = tuple(f for f in framing if f not in ("size", "shot_type"))
-
-    # POV 는 카메라 줄에서도 맨 앞이어야 합니다. 사이즈 절이 먼저 나가면 모델은
-    # "a medium shot" 을 손에 쥔 채로 POV 문장을 읽게 되고, 정작 그 문장이 "a medium
-    # shot 으로 시작하지 마라" 라고 말합니다 — 지시가 스스로를 반박합니다.
-    if pov:
-        key = card.get("viewpoint")
-        sent, lab = en("viewpoint", key, who), ko("viewpoint", key)
-        if sent:
-            bits.append("{} [{}]".format(sent, lab))
-
-    for f in framing:
-        key = card.get(f)
-        if f == "angle" and pov:
-            sent = ANGLE_POV.get(key or "", "")
-        elif f == "facing":
-            # 방향의 기준은 시점의 주인이 아니라 화면에 그려지는 인물입니다.
-            sent = en(f, key, facing_anchor(card, who))
-        else:
-            sent = en(f, key, who)
-        lab = ko(f, key)
-        if sent:
-            bits.append("{} [{}]".format(sent, lab))
-
-    if not pov:                       # POV 는 위에서 이미 맨 앞에 넣었습니다
-        key = card.get("viewpoint")
-        sent, lab = en("viewpoint", key, who), ko("viewpoint", key)
-        if sent:
-            bits.append("{} [{}]".format(sent, lab))
-
-    key = card.get("motion")
-    sent, lab = en("motion", key, who), ko("motion", key)
+    owner = card.get("vp_target") or ""
+    for field in ("angle", "facing", "size"):
+        if pov and owner and card.get(field) and card.get(field + "_target") == owner:
+            raise ValueError("POV의 {} 대상은 시점 주인 자신이 아닌 화면에 보이는 대상이어야 합니다.".format(field))
+    sent = en("viewpoint", card.get("viewpoint"), camera_target_name(owner) if owner else who)
     if sent:
-        for f in (() if key == "static" else ("amp", "speed")):
-            extra = en(f, card.get(f))
+        bits.append("{} [{}]".format(sent, ko("viewpoint", card.get("viewpoint"))))
+
+    if not frame_anchored:
+        for field in ("size", "shot_type", "angle", "facing"):
+            key, target = card.get(field), card.get(field + "_target")
+            if not key:
+                continue
+            name = camera_target_name(target)
+            if pov and field == "shot_type":
+                continue
+            if pov and field == "size" and not target:
+                continue  # old POV cards did not use a size target
+            if field == "angle":
+                if pov:
+                    sent = ANGLE_POV.get(key, "").replace("them", name)
+                    if target and key not in ("high", "low"):
+                        sent += "; viewing target: " + name
+                elif target == "scene":
+                    sent = {
+                        "eye": "an eye-level view of the scene as a whole",
+                        "high": "a high-angle view looking down over the scene as a whole",
+                        "low": "a low-angle view looking up into the scene as a whole",
+                        "overhead": "a top-down view of the scene as a whole",
+                        "worm": "a ground-level view looking steeply upward into the scene",
+                        "dutch": "a view of the scene with a tilted horizon",
+                    }.get(key, "")
+                else:
+                    sent = en(field, key).replace("the subject's", name + "'s").replace("the subject", name).replace("them", name)
+                    if target and key in ("overhead", "worm", "dutch"):
+                        sent += "; angle target: " + name
+            elif field == "facing":
+                if card.get("viewpoint") == "shoulder" and target == owner and key == "front" and owner:
+                    raise ValueError("같은 인물의 어깨너머와 정면은 동시에 지정할 수 없습니다. 방향 기준 대상을 구분하세요.")
+                sent = en(field, key, name)
+            elif field == "size":
+                sent = en(field, key)
+                if target:
+                    sent += "; framing target: " + name
+                if pov:
+                    sent = "within this first-person view, " + sent
+            else:
+                sent = en(field, key)
+            if sent:
+                bits.append("{} [{}]".format(sent, ko(field, key)))
+
+    motion = card.get("motion")
+    sent = en("motion", motion)
+    if sent:
+        target = card.get("motion_target")
+        if target and motion != "static":
+            name = camera_target_name(target)
+            sent = sent.replace("the subject", name)
+            if motion not in ("arc", "tracking"):
+                sent += "; movement/framing target: " + name
+        for field in (() if motion == "static" else ("amp", "speed")):
+            extra = en(field, card.get(field))
             if extra:
                 sent += " " + extra
-                lab += " " + ko(f, card.get(f))
-        bits.append("{} [{}]".format(sent, lab))
-
-    if not bits:
-        return ""
-    return ("; ".join(bits)
-            + ". 위 카메라 지시는 전부 프롬프트에 그대로 반영하라. 하나도 빠뜨리지 마라.")
+        bits.append(sent)
+    if pov:
+        bits.append("POV identifies the observer only. Unspecified angle and gaze remain unspecified rather than being filled with defaults")
+    return ("; ".join(bits) + ". 각 카메라 설정은 지정한 대상에 적용하고, 인물의 몸 방향·시선을 임의로 바꾸지 마라.") if bits else ""
 
 
 # 역할이 무엇을 가져오는지는 툴팁에 있지만, 그건 설명이라 지시로 읽히지 않습니다.
@@ -714,7 +746,38 @@ def refs_block(refs, cards=None):
         ko_lab, tip, _en = TABLES["ref_role"].get(role, ("", "", ""))
         if not ko_lab:
             continue
-        line = "- 이미지 {}: {} — {}".format(n, ko_lab, tip)
+        scoped = r.get("shots") or []
+        scope = "샷 " + ", ".join(str(x) for x in scoped) if scoped else "전체 샷"
+        target = r.get("target") or ""
+        if role in ("pov_self", "ots_self"):
+            viewpoint = "pov" if role == "pov_self" else "shoulder"
+            inferred = [i for i, c in enumerate(cards or [], 1)
+                        if c.get("viewpoint") == viewpoint and c.get("vp_target") == "pic:{}".format(n)]
+            matching = [i for i in inferred if not scoped or i in scoped]
+            tip = ("이 이미지 인물의 정체성과 의상을 참조한다. "
+                   "POV의 자기 시야 또는 어깨너머의 전경 가시성은 해당 시점을 쓰는 샷에만 적용한다. "
+                   "다른 샷에서는 그 샷의 카메라에 보이는 얼굴과 신체를 정상적으로 서술한다.")
+            scope_note = " 해당 시점 샷: {}.".format(", ".join(map(str, matching)) or "없음 — 시점 설정 확인")
+        else:
+            scope_note = ""
+        if role == "face":
+            tip = ("얼굴의 정체성·눈·코·입·턱선 특징을 참조한다. 몸·의상·배경은 가져오지 않는다. "
+                   "얼굴의 렌더링은 명시한 Style을 따른다. Auto일 때만 참조 작화를 사용한다.")
+        if role == "background":
+            tip += (" 건물·소품의 실제 공간 관계와 광원을 유지한다. 이미지의 화면 좌표와 "
+                    "원근은 고정하지 않고 각 샷의 카메라에서 다시 결정한다.")
+        if role in ("character", "character_full"):
+            scope_note += " 정체성과 의상 참조는 유지하되 각 샷에서는 실제로 보이는 특징만 서술한다."
+        if role == "style":
+            scope_note += " Auto Style일 때 화풍 기준이다. 명시한 Style이 있으면 그 매체를 우선한다."
+        if role in FRAME_ROLES:
+            scope = "샷 1의 0초" if role == "first_frame" else "마지막 샷의 종료 시점"
+            tip = "지정 시점의 화면 기준이다. 실제 프레임 입력 연결은 생성 노드에서 별도로 설정한다."
+        line = "- 이미지 {}: {} — {} 적용 범위: {}.{}".format(n, ko_lab, tip, scope, scope_note)
+        if target:
+            line += " 적용 대상: {}.".format(who_label(target))
+        elif role in ("pose", "outfit", "expression", "prop", "face"):
+            line += " 적용 대상은 명시한 내용에서 식별하고 모호하면 임의로 여러 대상에 배분하지 않는다."
         extra = ROLE_EXCLUDE.get(role)
         if extra:
             line += " " + extra
@@ -725,7 +788,7 @@ def refs_block(refs, cards=None):
         return "", {}
     out = ["레퍼런스 이미지 용도(각 이미지가 무엇을 지배하는지 반드시 명시할 것):"] + lines
     if axes.get("frame_anchor"):
-        out.append("위에서 ★ 로 표시된 이미지는 지정 시점의 실제 프레임이다. REF2VA에서는 subject_definitions 에 "
+        out.append("위에서 ★ 로 표시된 이미지는 지정 시점의 프레임 참조 요청이다. REF2VA에서는 subject_definitions 에 "
                    "<Picture N> 항목을 따로 세우고, summary 의 태스크 타입에 "
                    "keyframe completion 을 포함하라.")
     return "\n".join(out), axes
@@ -800,6 +863,7 @@ def build(cards, subjects_text="", refs=None, language="Korean",
                 "카메라 문장만 나갑니다. 참가자 칸을 채우면 자세에 맞는 문장이 "
                 "붙습니다.".format(n, who_label(pov_t)))
         cam = camera_sentence(c, who, frame_anchored=(anchored and n == 1))
+        orientation = orientation_sentence(c)
 
         body = (c.get("text") or "").strip()
         if body:
@@ -809,12 +873,14 @@ def build(cards, subjects_text="", refs=None, language="Korean",
                        "동시에 성립할 수 없는 요구는 임의로 삭제하지 말고 충돌로 취급한다.")
         if av:
             out.append(av)
+            out.append("행위 시작 시각은 전체 영상 기준이다. 시각이 없는 행위는 이 샷 시작 상태로 "
+                       "해석한다. 같은 순간에서 상속한 행위는 새로 시작하지 않고 진행 상태를 이어받는다.")
         extra = (c.get("extra") or "").strip()
         if extra:
             out.append("추가 동작: " + extra)
             if av:
-                out.append("추가 동작은 지정된 자세와 행동에 양립하도록 반영한다. "
-                           "같은 신체 부위의 동시 사용 등 양립 불가 조건은 충돌이다.")
+                out.append("지정된 자세에서 추가 동작으로 변하는 순서를 반영한다. "
+                           "같은 시점에 양립 불가능한 신체 사용을 요구할 때만 충돌로 취급한다.")
 
         # 전개는 추가 동작보다 약합니다 — 사용자가 직접 쓴 것이 굴린 주사위에 밀리면
         # 안 되니, 앞의 두 블록이 자리를 잡은 뒤에 옵니다. 샷마다 길이를 따로 알 수는
@@ -832,6 +898,8 @@ def build(cards, subjects_text="", refs=None, language="Korean",
         if d:
             out.append(d)
 
+        if orientation:
+            out.append("몸 방향·시선: " + orientation)
         if cam:
             out.append("카메라: " + cam)
             out.append("카메라는 무엇이 화면에 그려지는지만 정한다. 위에 적힌 자세와 "

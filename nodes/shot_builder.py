@@ -16,9 +16,9 @@ Everything per-shot lives on the cards.
 import json
 
 try:
-    from ..mmh3 import acts, guideline, shotcards, shotlist, styles, themes, validator
+    from ..mmh3 import authoring_checks, acts, guideline, shotcards, shotlist, styles, themes, validator
 except ImportError:  # direct import during tests
-    from mmh3 import acts, guideline, shotcards, shotlist, styles, themes, validator
+    from mmh3 import authoring_checks, acts, guideline, shotcards, shotlist, styles, themes, validator
 
 CATEGORY = "MiniMax H3/Prompt"
 
@@ -255,8 +255,9 @@ class MMH3_ShotBuilder:
             "shot_choices": choices,
             "shot_count": len(cards),
             "cut_times": [c.get("at") for c in cards[1:]],
+            "authoring_cards": cards,
             "dialogue_rows": [line for card in cards for line in shotcards.dialogue_lines(card)],
-            "style": kw.get("style", ""), "custom_style": "", "register": "",
+            "style": kw.get("style", ""), "custom_style": kw.get("custom_style", ""), "register": "",
             # `picture_roles` 는 Shot Builder 를 안 쓸 때 Writer 에 직접 적는 칸이라
             # 비워 둡니다 — 여기서 채우면 shotcards 가 이미 브리프에 쓴 역할 문단과
             # roles.py 가 만드는 계약문이 겹쳐서 같은 말이 두 번 나갑니다.
@@ -265,7 +266,7 @@ class MMH3_ShotBuilder:
             # 물어볼 항목을 줄이고, 리포트도 역할이 선언됐다는 걸 알 수 있습니다.
             # 예전에는 이 경로가 없어서, 카드에 역할을 다 골라 놔도 리포트가
             # "picture roles: none declared" 라고 했습니다.
-            "ref_roles": [{"n": int(r.get("n") or 0), "role": (r.get("role") or "")}
+            "ref_roles": [dict(r, n=int(r.get("n") or 0), role=(r.get("role") or ""))
                           for r in (refs or []) if (r.get("role") or "")],
             "picture_roles": "", "extra_directives": "",
             # Lines typed on the cards are quotes, not a suggestion: switch the writer
@@ -329,6 +330,10 @@ class MMH3_ShotBuilder:
             rows.append("  [{}] {}".format("ON " if key in fired else "off", _BLOCK_KO[key]))
 
         warn = list(problems)
+        warn.extend(authoring_checks.card_problems(cards))
+        warn.extend(authoring_checks.reference_problems(refs, cards))
+        if str(spec.get("style", "")).startswith("99.") and not spec.get("custom_style", "").strip():
+            warn.append("Custom 스타일을 선택했지만 설명이 비어 있습니다.")
         if len(cards) > 1 and "CONTINUITY" not in fired:
             warn.append("! 샷이 2개 이상인데 연속성 블록이 안 켜졌습니다.")
         if any(c.get("viewpoint") == "pov" and not c.get("vp_target") for c in cards):

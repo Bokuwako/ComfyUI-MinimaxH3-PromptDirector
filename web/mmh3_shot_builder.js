@@ -12,16 +12,19 @@ import { app } from "../../scripts/app.js";
 // sentences Python builds.
 
 const FIELDS = [
-  { key: "size",      label: "사이즈" },
-  { key: "shot_type", label: "샷타입" },
-  { key: "angle",     label: "앵글" },
-  { key: "facing",    label: "방향" },
-  { key: "viewpoint", label: "시점" },
-  { key: "motion",    label: "모션" },
-  { key: "amp",       label: "폭" },
-  { key: "speed",     label: "속도" },
+  {key:"viewpoint", label:"시점"}, {key:"vp_target", label:"시점 주인", target:"person"},
+  {key:"angle", label:"앵글"}, {key:"angle_target", label:"앵글 기준", target:"frame"},
+  {key:"facing", label:"보는 방향"}, {key:"facing_target", label:"방향 기준", target:"frame"},
+  {key:"size", label:"사이즈"}, {key:"size_target", label:"사이즈 대상", target:"frame"},
+  {key:"shot_type", label:"샷타입"}, {key:"motion", label:"모션"},
+  {key:"motion_target", label:"모션 대상", target:"frame"}, {key:"amp", label:"폭"},
+  {key:"speed", label:"속도"}, {key:"body_actor", label:"몸 방향—누가", target:"person"},
+  {key:"body_target", label:"몸 방향—어디로", target:"destination"},
+  {key:"gaze_actor", label:"시선—누가", target:"person"},
+  {key:"gaze_target", label:"시선—어디로", target:"destination"},
 ];
 const COLS = 4;
+const GRID_ROWS = Math.ceil(FIELDS.length / COLS);
 const MIN_W = 640;
 
 const PAD = 8;
@@ -32,7 +35,7 @@ const ROW = 26;
 // 한 칸일 때는 규칙도 하나뿐이라, 장면을 지키려 하면 동작이 자세를 흔들고
 // 자세를 지키려 하면 사용자가 쓴 동작이 버려졌습니다.
 const TEXT_ROW = 26;
-const TEXT = TEXT_ROW * 2 + 6;
+const TEXT = TEXT_ROW * GRID_ROWS + 6;
 const LINE_H = 17;        // 대사 한 줄
 const DLG_BAR = 16;       // [+ 대사] 줄
 const SPK_W = 132;        // 대사 줄의 화자 칸
@@ -71,7 +74,7 @@ function linesOf(shot) {
   return legacy ? [{ who: "", text: legacy }] : [];
 }
 const actsH = s => ACT_BAR + actsOf(s).length * ACT_H;
-const cardH = s => HEAD + ROW * 2 + TEXT + actsH(s)
+const cardH = s => HEAD + ROW * GRID_ROWS + TEXT + actsH(s)
                  + DLG_BAR + linesOf(s).length * LINE_H + 8;
 const cardsH = shots => shots.reduce((a, s) => a + cardH(s), 0);
 
@@ -99,8 +102,14 @@ const tipOf = (f, k) => rowOf(f, k).tip || "";
 const menuFor = f => rowsOf(f).map(r => ({ v: r.key, ko: r.ko, tip: r.tip }));
 
 function unavailableReason(shot, key) {
-  if (shot.viewpoint === "pov" && (key === "size" || key === "shot_type"))
-    return "POV에서는 시점 인물의 눈과 시선으로 구도를 정합니다.";
+  if (key === "vp_target" && (!shot.viewpoint || shot.viewpoint === "objective"))
+    return "시점 주인이 필요한 시점을 선택하세요.";
+  if (shot.viewpoint === "pov" && key === "shot_type")
+    return "POV에서는 관계형 샷타입을 사용하지 않습니다.";
+  if (shot.viewpoint === "pov" && key === "size" && !shot.size_target)
+    return "POV 사이즈를 쓰려면 사이즈 대상을 먼저 지정하세요.";
+  if (key === "motion_target" && (!shot.motion || shot.motion === "static"))
+    return "이동 모션에서 사용할 대상입니다.";
   if (shot.motion === "static" && (key === "amp" || key === "speed"))
     return "고정 카메라에는 이동 폭과 속도를 적용하지 않습니다.";
   return "";
@@ -111,7 +120,16 @@ function effectiveShots(shots) {
   for (let i = 1; i < result.length; i++) {
     if (result[i].link === "same_moment") {
       result[i].text = "";
-      result[i].acts = (result[i - 1].acts || []).map(a => ({ ...a, a_pos: "", b_pos: "" }));
+      for (const key of ["body_actor", "body_target", "gaze_actor", "gaze_target"]) {
+        if (!result[i][key]) result[i][key] = result[i - 1][key] || "";
+      }
+      for (const key of ["body_target", "gaze_target"]) {
+        const value = result[i][key];
+        if (value === "camera" || value === "away_camera") {
+          result[i][key] = "named:" + (value === "away_camera" ? "the direction away from " : "") + `the camera position used in Shot ${i}`;
+        }
+      }
+      result[i].acts = (result[i - 1].acts || []).map(a => ({ ...a, a_pos: "", b_pos: "", at: null, inherited: true }));
     }
   }
   return result;
@@ -151,6 +169,21 @@ function writeData(node, shots, refs) {
   const sz = node.computeSize();
   node.setSize([Math.max(sz[0], keep), sz[1]]);
   node.setDirtyCanvas(true, true);
+}
+
+function cameraTargetChoices(kind) {
+  const out = targetChoices().map(o => ({...o, tip:"이 항목의 기준 인물입니다."}));
+  out[0] = {v:"", ko:"지정 안 함", tip:"브리프에서 판단합니다."};
+  if (kind === "frame") out.splice(1, 0, {v:"scene", ko:"장면 전체", tip:"특정 인물이 아닌 장면을 기준으로 합니다."});
+  if (kind === "destination") out.splice(1, 0,
+    {v:"camera", ko:"카메라 쪽", tip:"POV라면 시점 주인 쪽입니다."},
+    {v:"away_camera", ko:"카메라 반대쪽", tip:"카메라로부터 멀어지는 방향입니다."});
+  out.push({v:"__custom__", ko:"인물·대상 직접 입력…", tip:"같은 이미지의 여러 인물이나 소품을 이름으로 구분합니다."});
+  return out;
+}
+function cameraTargetLabel(value, kind) {
+  if (value?.startsWith("named:")) return value.slice(6);
+  return cameraTargetChoices(kind).find(o => o.v === (value || ""))?.ko || value || "지정 안 함";
 }
 
 function targetChoices() {
@@ -310,18 +343,18 @@ class ShotCardsWidget {
       if (ly < top || ly > top + h) { top += h; continue; }
       const ry = ly - top;
       if (ry < HEAD) return { zone: "head", i, top };
-      if (ry < HEAD + ROW * 2) {
+      if (ry < HEAD + ROW * GRID_ROWS) {
         const r = Math.floor((ry - HEAD) / ROW);
         const cw = (W - PAD * 2) / COLS;
         const c = Math.min(COLS - 1, Math.max(0, Math.floor((x - PAD) / cw)));
         return { zone: "grid", i, r, c, idx: r * COLS + c, top };
       }
-      if (ry < HEAD + ROW * 2 + TEXT) {
-        const tr = ry - (HEAD + ROW * 2);
+      if (ry < HEAD + ROW * GRID_ROWS + TEXT) {
+        const tr = ry - (HEAD + ROW * GRID_ROWS);
         return { zone: tr < TEXT_ROW ? "text" : "extra", i, top };
       }
 
-      const ay = ry - (HEAD + ROW * 2 + TEXT);
+      const ay = ry - (HEAD + ROW * GRID_ROWS + TEXT);
       const acts = actsOf(shots[i]);
       if (ay < actsH(shots[i])) {
         if (ay < ACT_BAR)
@@ -341,7 +374,7 @@ class ShotCardsWidget {
         return { zone: "actbar", i, top };
       }
 
-      const dy = ry - (HEAD + ROW * 2 + TEXT + actsH(shots[i]));
+      const dy = ry - (HEAD + ROW * GRID_ROWS + TEXT + actsH(shots[i]));
       if (dy < DLG_BAR)
         return (x > PAD && x < PAD + 78) ? { zone: "dlgadd", i, top }
                                          : { zone: "dlgbar", i, top };
@@ -383,7 +416,7 @@ class ShotCardsWidget {
       const isFrame = r.role === "first_frame" || r.role === "last_frame";
       ctx.fillStyle = isFrame ? "#FF9800" : (r.role ? "#00FFCC" : "#4a4a4a");
       ctx.font = "10px sans-serif";
-      ctx.fillText(clip(ctx, `${r.n}: ${labelOf("ref_role", r.role)}`, rw - 8),
+      ctx.fillText(clip(ctx, `${r.n}: ${labelOf("ref_role", r.role)}${r.shots?.length ? " · 샷 " + r.shots.join(",") : ""}${r.target ? " · 대상 지정" : ""}`, rw - 8),
                    PAD + col * rw, y0 + REF_LABEL_H + row * REF_ROW_H + 13);
     });
 
@@ -441,20 +474,11 @@ class ShotCardsWidget {
         ctx.fillText(f.label, x, yy + 9);
         ctx.fillStyle = s[f.key] ? "#e2e2e2" : "#555";
         ctx.font = "10px sans-serif";
-        ctx.fillText(clip(ctx, unavailableReason(s, f.key) ? "적용 안 함" : labelOf(f.key, s[f.key]), cw), x, yy + 21);
+        ctx.fillText(clip(ctx, unavailableReason(s, f.key) ? "적용 안 함" : (f.target ? cameraTargetLabel(s[f.key], f.target) : labelOf(f.key, s[f.key])), cw), x, yy + 21);
       });
 
-      if (s.viewpoint && s.viewpoint !== "objective") {
-        const x = PAD + 3 * cw, yy = y + HEAD + ROW;
-        ctx.fillStyle = "#FF9800"; ctx.font = "8px sans-serif";
-        ctx.fillText("시점 주인", x, yy + 9);
-        const t = targetChoices().find(o => o.v === (s.vp_target || ""));
-        ctx.fillStyle = s.vp_target ? "#FF9800" : "#f44336";
-        ctx.font = "10px sans-serif";
-        ctx.fillText(clip(ctx, t ? t.ko : "— 대상 없음", cw), x, yy + 21);
-      }
 
-      const ty = y + HEAD + ROW * 2;
+      const ty = y + HEAD + ROW * GRID_ROWS;
       const drawBox = (byy, lab, col, val, ph) => {
         ctx.fillStyle = "#141414";
         ctx.fillRect(PAD, byy, W - PAD * 2, TEXT_ROW - 4);
@@ -597,7 +621,24 @@ class ShotCardsWidget {
     }
     if (cell.zone === "ref") {
       loadVocab().then(() => menu(event, menuFor("ref_role"),
-        v => { refs[cell.i].role = v; writeData(node, shots, refs); }));
+        v => {
+          const ref = refs[cell.i];
+          ref.role = v;
+          ref.target = ""; ref.shots = [];
+          writeData(node, shots, refs);
+          if (!v || v === "first_frame" || v === "last_frame") return;
+          const chooseScope = () => menu(event,
+            [{ v: [], ko: "전체 샷" }, ...shots.map((_, i) => ({ v: [i + 1], ko: `샷 ${i + 1}만` }))],
+            value => { ref.shots = value; writeData(node, shots, refs); }, "이미지 용도의 적용 샷");
+          if (["pose", "outfit", "expression", "face"].includes(v)) {
+            menu(event, targetChoices(), target => {
+              ref.target = target; writeData(node, shots, refs); chooseScope();
+            }, "참조를 적용할 인물 (미지정이면 내용에서 판단)");
+          } else if (v === "prop") {
+            editInline(node, PAD, this.last_y, 350, 28, "", false,
+              target => { ref.target = target.trim(); writeData(node, shots, refs); chooseScope(); });
+          } else chooseScope();
+        }));
       return true;
     }
     if (cell.zone === "add") { shots.push(blankShot()); writeData(node, shots, refs); return true; }
@@ -626,24 +667,32 @@ class ShotCardsWidget {
       return true;
     }
     if (cell.zone === "grid") {
-      if (cell.r === 1 && cell.c === 3 && s.viewpoint && s.viewpoint !== "objective") {
-        menu(event, targetChoices(), v => { s.vp_target = v; writeData(node, shots, refs); });
-        return true;
-      }
       const f = FIELDS[cell.idx];
       if (f && unavailableReason(s, f.key)) return true;
+      if (f?.target) {
+        menu(event, cameraTargetChoices(f.target), v => {
+          if (v === "__custom__") {
+            const cw = (W - PAD * 2) / COLS;
+            editInline(node, PAD + cell.c * cw, this.last_y + cell.top + HEAD + cell.r * ROW,
+              Math.max(cw, 220), 26, s[f.key]?.replace(/^named:/, "") || "", false, value => {
+              if (value?.trim()) { s[f.key] = "named:" + value.trim(); writeData(node, shots, refs); }
+            });
+          } else { s[f.key] = v; writeData(node, shots, refs); }
+        }, f.label);
+        return true;
+      }
       if (f) {
         loadVocab().then(() => menu(event, menuFor(f.key), v => {
           s[f.key] = v;
           if (f.key === "motion" && v === "static") { s.amp = ""; s.speed = ""; }
-          if (f.key === "viewpoint" && v === "pov") { s.size = ""; s.shot_type = ""; }
+          if (f.key === "viewpoint" && v === "pov") { if (!s.size_target) s.size = ""; s.shot_type = ""; }
           if (f.key === "viewpoint" && (!v || v === "objective")) s.vp_target = "";
           writeData(node, shots, refs);
         }));
       }
       return true;
     }
-    const ty = this.last_y + cell.top + HEAD + ROW * 2;
+    const ty = this.last_y + cell.top + HEAD + ROW * GRID_ROWS;
 
     // '같은 순간' 샷은 행위와 내용을 앞 샷에서 그대로 받습니다. 여기서 고치면
     // 두 샷이 갈라져서, 카메라만 바꾸려던 것이 다른 장면이 됩니다.
@@ -716,7 +765,7 @@ class ShotCardsWidget {
       return "이 샷에 행위를 한 줄 추가합니다. 같은 시각을 적은 줄은 동시에 일어납니다 — "
            + "3명 이상은 줄 두 개로 표현하세요.";
     if (cell.zone === "actline") {
-      if (cell.part === "at") return "이 행위가 시작하는 시각(초). 같은 시각끼리는 동시입니다.";
+      if (cell.part === "at") return "전체 영상 기준 시작 시각(초). 같은 시각끼리는 동시이며, 비워두면 이 샷 시작 상태입니다.";
       if (cell.part === "act") return "행위를 고릅니다. 이름과 함께 두 사람의 자세·누가 "
                                     + "움직이는지·방향이 영어 지시문으로 나갑니다.";
       if (cell.part === "mover") return "기본 무버를 바꿉니다. 비워두면 행위에 정해진 쪽이 "
@@ -781,7 +830,7 @@ class ShotCardsWidget {
         : "마지막 레퍼런스 이미지를 제거합니다.";
     if (cell.zone === "ref") {
       const r = refs[cell.i];
-      return `이미지 ${r.n} 의 용도. ` + (tipOf("ref_role", r.role)
+      return `이미지 ${r.n} 의 용도. 대상: ${r.target || "미지정"}. 적용: ${r.shots?.length ? "샷 " + r.shots.join(",") : "전체 샷"}. ` + (tipOf("ref_role", r.role)
         || "클릭해서 고르세요. ★ 첫 프레임을 고르면 그 이미지가 0초 프레임이 됩니다.");
     }
     if (cell.zone === "add") return "샷을 하나 더 추가합니다. 2번째부터 전환 시각이 생깁니다.";
@@ -793,10 +842,9 @@ class ShotCardsWidget {
       return cell.i === 0 ? "첫 샷입니다. 전환 시각이 없습니다."
                           : "전환 시각과 전환 방식. × 는 이 샷을 지웁니다.";
     if (cell.zone === "grid") {
-      if (cell.r === 1 && cell.c === 3 && s.viewpoint && s.viewpoint !== "objective")
-        return "이 시점이 누구의 것인지 고릅니다.";
       const f = FIELDS[cell.idx];
       if (f && unavailableReason(s, f.key)) return unavailableReason(s, f.key);
+      if (f?.target) return `${f.label}: 이미지가 아니라 그 이미지의 인물 기준입니다. 여러 인물이면 직접 이름을 지정하세요. 미지정은 브리프에서 판단합니다.`;
       return f ? `${f.label} — ` + (tipOf(f.key, s[f.key]) || "클릭해서 고르세요.") : "";
     }
     if (cell.zone === "dlgadd")
@@ -805,7 +853,7 @@ class ShotCardsWidget {
     if (cell.zone === "dlgline") {
       if (cell.part === "at")
         return "이 대사가 시작하는 시각(초)입니다. 비워두면 순서만 지킵니다. "
-             + "값을 넣으면 컷 없이 같은 화면 안에서 그 시각에 말이 시작됩니다 — "
+             + "전체 영상 기준 초입니다. 값이 있으면 이 샷 안의 해당 시각에 말이 시작됩니다 — "
              + "컷을 넣으면 화면이 새로 그려지지만 이건 안 그렇습니다.";
       if (cell.part === "who") return "이 대사를 말하는 사람을 고릅니다. 오디오 레퍼런스와 "
                                     + "같은 이미지 번호를 고르면 목소리가 그 인물에 묶입니다.";

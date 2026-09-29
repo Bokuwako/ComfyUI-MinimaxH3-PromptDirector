@@ -96,14 +96,20 @@ _ALL_HEADINGS = ("MEDIUM", "SETTING", "LIGHT", "FRAMING", "LAYERS", "PEOPLE", "C
                  "SURFACE", "UNUSUAL")
 
 ROLE_HEADINGS = {
-    "background": ("MEDIUM", "SETTING", "LIGHT", "FRAMING", "LAYERS", "OBJECTS",
+    "character": ("PEOPLE", "PHYSIQUE", "SURFACE", "UNUSUAL"),
+    "character_full": ("PEOPLE", "CLOTHING", "PHYSIQUE", "BODY", "SURFACE", "UNUSUAL"),
+    "pov_self": ("PEOPLE", "CLOTHING", "PHYSIQUE", "BODY", "SURFACE", "UNUSUAL"),
+    "ots_self": ("PEOPLE", "CLOTHING", "PHYSIQUE", "BODY", "SURFACE", "UNUSUAL"),
+    "first_frame": _ALL_HEADINGS,
+    "last_frame": _ALL_HEADINGS,
+    "background": ("SETTING", "LIGHT", "LAYERS", "OBJECTS",
                    "TEXT AND UI", "SURFACE", "UNUSUAL"),
     "prop":       ("MEDIUM", "LIGHT", "OBJECTS", "TEXT AND UI", "SURFACE", "UNUSUAL"),
     "style":      ("MEDIUM", "LIGHT", "SURFACE", "UNUSUAL"),
-    "face":       ("MEDIUM", "PEOPLE", "GAZE", "EXPRESSION", "SURFACE", "UNUSUAL"),
+    "face":       ("PEOPLE", "SURFACE", "UNUSUAL"),
     "expression": ("MEDIUM", "PEOPLE", "GAZE", "EXPRESSION", "UNUSUAL"),
     "outfit":     ("MEDIUM", "PEOPLE", "CLOTHING", "SURFACE", "UNUSUAL"),
-    "pose":       ("MEDIUM", "FRAMING", "PHYSIQUE", "BODY", "UNUSUAL"),
+    "pose":       ("BODY", "UNUSUAL"),
     "breasts":    ("MEDIUM", "PHYSIQUE", "SURFACE", "UNUSUAL"),
     "genitals":   ("MEDIUM", "PHYSIQUE", "SURFACE", "UNUSUAL"),
 }
@@ -114,6 +120,10 @@ def question(index, total, role=""):
     head = ("Inventory this picture." if total <= 1 else
             "Inventory picture {} of {}. Describe ONLY this picture. Do not mention or "
             "borrow anything from the other pictures.".format(index, total))
+    if role in ("pov_self", "ots_self"):
+        head += " Inventory visible identity for use across shots; the camera visibility restriction applies only to the assigned POV/shoulder shots."
+    if role == "background":
+        head += " Describe observable world-space relationships; image screen positions are not constraints on future camera views."
     wanted = ROLE_HEADINGS.get((role or "").strip())
     if not wanted:
         return head

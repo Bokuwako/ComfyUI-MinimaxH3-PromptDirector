@@ -25,6 +25,8 @@ Entry: (key, 한글 라벨, 한글 툴팁, 영어 지시문, 칸1 이름, 칸2 �
   지시문의 {A} / {B} 는 참여자 라벨로 치환됩니다.
 """
 
+import math
+
 SOLO = ""
 
 ACTS = [
@@ -347,6 +349,7 @@ MOVER = [
 ]
 
 _ACT = {a[0]: a for a in ACTS}
+ACT_NAMES = {a[0]: a[0].replace("_", " ") for a in ACTS}
 _POS = {p[0]: p for p in POSITION}
 
 
@@ -404,14 +407,25 @@ def pov_slots_unknown(card, pov_target):
 def act_lines(card):
     """[{at, act, a, a_pos, b, b_pos, mover}] for this card, blank rows dropped."""
     out = []
-    for ln in (card.get("acts") or []):
+    for number, ln in enumerate(card.get("acts") or [], start=1):
+        prefix = "행위 {}: ".format(number)
         if not isinstance(ln, dict):
+            raise ValueError(prefix + "행 입력은 객체여야 합니다.")
+        raw_key = ln.get("act")
+        if raw_key is not None and not isinstance(raw_key, str):
+            raise ValueError(prefix + "프리셋 ID는 문자열이어야 합니다.")
+        key = (raw_key or "").strip()
+        if not key:
             continue
-        key = (ln.get("act") or "").strip()
-        if not key or key not in _ACT:
-            continue
+        if key not in _ACT:
+            raise ValueError(prefix + "알 수 없는 프리셋 ID입니다: " + key)
+        raw_at = ln.get("at")
+        at = _seconds(raw_at)
+        unspecified = raw_at is None or (isinstance(raw_at, str) and not raw_at.strip())
+        if not unspecified and at is None:
+            raise ValueError(prefix + "시각은 0 이상의 유한한 초 값이어야 합니다. 입력을 수정하세요.")
         out.append({
-            "at": _seconds(ln.get("at")),
+            "at": at,
             "act": key,
             "a": (ln.get("a") or "").strip(),
             "a_pos": (ln.get("a_pos") or "").strip(),
@@ -429,11 +443,13 @@ def _seconds(v):
         f = float(v)
     except (TypeError, ValueError):
         return None
-    return f if f >= 0 else None
+    return f if math.isfinite(f) and f >= 0 else None
 
 
 def _fmt_at(sec):
-    f = float(sec)
+    f = _seconds(sec)
+    if f is None:
+        raise ValueError("시각은 0 이상의 유한한 초 값이어야 합니다.")
     return str(int(f)) if f == int(f) else ("%g" % f)
 
 
@@ -654,7 +670,7 @@ def act_block(card, label_fn, pov_target=None):
     # 그 단어 두 개가 더 셀 수 있습니다. 이름을 먼저 쓰고 설명이 뒤따르게 못박습니다.
     names = []
     for ln in lines:
-        nm = _ACT[ln["act"]][3].split(".")[0].strip()
+        nm = ACT_NAMES[ln["act"]]
         if nm and nm not in names:
             names.append(nm)
     if names:

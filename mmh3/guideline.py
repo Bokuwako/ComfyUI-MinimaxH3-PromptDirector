@@ -49,6 +49,25 @@ Roll Counterclockwise. Add amplitude and speed when meaningful. Name the actor e
 so body motion and camera motion are distinct. A static camera is fixed WITHIN its shot;
 another shot may use a different static camera position.
 
+ACTION AND SPATIAL CONTINUITY
+Separate the state immediately after a cut from the actions that follow. Preserve the
+entry state, then describe requested changes in their stated order. A starting posture
+is not a requirement to maintain that posture throughout the shot.
+Resolve participants, body orientation, gaze and relative physical positions before
+describing the camera view. Where an action requires contact, support or relocation,
+describe the essential movement and resulting relationship needed to realize that action.
+Keep this concise: do not substitute a weaker neighboring action or an already completed
+pose for a requested transition, and do not add unrelated reactions or escalation.
+When changing a camera setup, update dependent framing and visibility descriptions.
+Camera direction does not by itself instruct an actor to turn or look into the lens.
+
+FINAL CONSISTENCY CHECK
+Before returning the prompt, check requested events and their order, action completion
+when requested, physical relationships, and compatibility with the selected camera.
+Check every shot label and supplied cut time. If speech is present, check each line's
+actual speaker, independent speaker ID, target language and supplied voice binding.
+Correct mismatches without adding a checklist or commentary to the output.
+
 AUDIO FIELDS
 overall_soundscape: 1-4 English sentences describing ambience, physical sounds and
 nonverbal human sounds. Put dialogue, singing and in-world music on the shot timeline.
@@ -60,7 +79,8 @@ rhythm and dynamics; N/A when absent or disabled. In-world music belongs on the 
 # 462 tokens of speaker-ID and <d> mechanics. Dead weight when the video has no
 # voice at all, which is most T2VA runs with dialogue_mode = none.
 SPEAKER_RULES = """SPEAKERS AND DIALOGUE SYNTAX
-Assign (S1), (S2), ... once in order of actual vocal events. A person's ID remains stable
+Assign (S1), (S2), ... only to people with actual vocal events, in vocal-event order.
+A person's ID remains stable
 across cuts. Subject numbers identify visual content and are independent of speaker IDs.
 Use <Subject N> (Sx) when a speaker has a defined Subject; otherwise identify the speaker
 in prose. Describe identity and delivery outside <d>[Language] spoken text</d>.
@@ -71,7 +91,9 @@ Separate dialogue lines are sequential unless the user explicitly requests group
 For unison, use one <d> block and the compound ID (S1,S2). For a line crossing a cut,
 use <scenetrans> at the joining point in both parts and state that audio continues.
 Use <cutoff> only for a requested interruption at the video end, not to fit excess text.
-Voiceover uses says in an off-screen voiceover; if the corresponding character is visible,
+Dialogue is spoken by the specified person in the scene unless narration or voiceover
+is explicitly requested. A hidden mouth or off-camera speaker does not make speech
+a voiceover. For explicitly requested voiceover, use says in an off-screen voiceover; if the corresponding character is visible,
 state after </d> that their lips remain closed. Voice present only in a reused soundtrack
 is identified by <Audio N>, without inventing an on-screen speaker.
 """
@@ -90,8 +112,10 @@ override a later shot's camera settings."""
 CONSTRAINT_OPERATOR = """CAMERA OPERATOR
 Distinguish the recording viewpoint from a device visible as a prop. The viewpoint follows
 the specified camera; a visible device moves as an object unless the brief links the two.
-For POV, derive eye height and visible body parts from posture and gaze. Show only the
-parts that fall within that view; retain any explicitly requested reflection."""
+For POV, the lens represents the named observer's eyes. Establish what they see using
+explicit gaze, camera targets and scene geometry. POV alone does not request eye-level
+framing, a horizontal gaze or a head turn. Do not add those as defaults. Show the observer's
+own body only where it enters their view; retain explicitly requested reflections."""
 
 CONSTRAINT_PROHIBITION = """EXCLUSIONS
 Express requested exclusions through a concrete allowed state where possible. Preserve
@@ -109,8 +133,11 @@ not require a language tag or invented syllables. Use <d> only for supplied voca
 dialogue or lyrics, under the selected dialogue policy."""
 
 CONSTRAINT_VIEWPOINT = """VIEWPOINT CHANGE
-At a requested viewpoint cut, establish whose view it is, eye height, gaze direction and
-what is visible from there. Keep physical posture and relationships; recalculate screen
+At a requested viewpoint cut, establish whose view it is and what is visible from there.
+Use the specified angle target, viewing-side target and framing target independently.
+A camera viewing side does not turn that person's body or change their gaze. If a target
+is unspecified, use explicit scene information; do not silently use the POV observer.
+Do not add an eye-level angle or horizontal gaze merely because the shot is POV. Keep physical posture and relationships; recalculate screen
 position, visible body surfaces and occlusion. A POV character's visible parts follow their
 posture and gaze, not a fixed list. A cut need not move or rotate the characters."""
 
@@ -364,7 +391,16 @@ def build_system_prompt(mode: str, duration: float, shot_hint: int, style: dict,
     if shot_hint > 1:
         labels["multi_shot"] = "yes"
     cons, used = build_constraints(brief, labels)
-    parts = [BASE_RULES, cons]
+    parts = [BASE_RULES, cons,
+             "AUTHORING PRIORITY: explicit scene/shot requests and scoped reference contracts "
+             "govern content, identity, pose, location and continuity. Honour explicit lens, "
+             "focus, lighting and audio settings. Style governs visual medium/rendering; theme "
+             "governs mood and genre only within choices left open. An explicit Style governs "
+             "global rendering; face references govern identity, not a competing rendering medium. "
+             "With Auto style, use an explicitly assigned style image, then the frame anchor, "
+             "then the brief. Preserve world-space lighting across same-location cuts. "
+             "Do not invent speech, music, weather or gaze merely from a preset. Flag incompatible "
+             "explicit requests rather than silently discarding one."]
     if dialogue_policy != "none" or "NONVERBAL" in used:
         parts.append(SPEAKER_RULES)
     nums = list(picture_numbers or range(1, n_images + 1))
@@ -417,9 +453,9 @@ def build_system_prompt(mode: str, duration: float, shot_hint: int, style: dict,
     if shot_hint > 0:
         tb.append("Write exactly {} shots. Preserve explicit cut times.".format(shot_hint))
         if shot_hint > 1:
-            tb.append("For cuts with no assigned time, use these fallback times:")
-            for i in range(1, shot_hint):
-                tb.append("[Shot {}] At {},".format(i + 1, _fmt_ts(float(duration) * i / shot_hint)))
+            tb.append("Assign times only to cuts without an explicit timestamp, within "
+                      "the clip duration and between adjacent assigned cuts. Explicit "
+                      "cut times are authoritative; do not redistribute them evenly.")
     else:
         tb.append("Honor all explicitly requested shot changes; otherwise prefer one continuous shot.")
     tb.append("Speech times are events, not cuts. Do not shorten or omit supplied lines to fit. "

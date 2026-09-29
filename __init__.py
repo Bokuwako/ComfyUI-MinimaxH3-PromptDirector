@@ -18,6 +18,8 @@ from .nodes.shot_settings import MMH3_ShotSettings
 from .nodes.kill_switch import MMH3_KillSwitch
 from .nodes.prompt_freeze import MMH3_PromptFreeze
 from .nodes.assets import MMH3_AssetSave, MMH3_AssetLoad
+from .nodes.frame_guard import MMH3_FrameGridGuard
+from .nodes.loop_tools import MMH3_HeadMaskTaper, MMH3_ColorCarry, MMH3_AVLatentFromCheckpoint
 
 NODE_CLASS_MAPPINGS = {
     "MMH3_ShotSettings": MMH3_ShotSettings,
@@ -30,6 +32,10 @@ NODE_CLASS_MAPPINGS = {
     "MMH3_PromptFreeze": MMH3_PromptFreeze,
     "MMH3_AssetSave": MMH3_AssetSave,
     "MMH3_AssetLoad": MMH3_AssetLoad,
+    "MMH3_FrameGridGuard": MMH3_FrameGridGuard,
+    "MMH3_HeadMaskTaper": MMH3_HeadMaskTaper,
+    "MMH3_ColorCarry": MMH3_ColorCarry,
+    "MMH3_AVLatentFromCheckpoint": MMH3_AVLatentFromCheckpoint,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -43,6 +49,10 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "MMH3_PromptFreeze": "🔒 MiniMax H3 Prompt Freeze",
     "MMH3_AssetSave": "📚 MiniMax H3 Asset Save",
     "MMH3_AssetLoad": "📚 MiniMax H3 Asset Load",
+    "MMH3_FrameGridGuard": "🧮 Frame Grid Guard",
+    "MMH3_HeadMaskTaper": "🧵 H3 Head Mask Taper",
+    "MMH3_ColorCarry": "🎨 H3 Color Carry",
+    "MMH3_AVLatentFromCheckpoint": "💾 H3 AV Latent From Checkpoint",
 }
 
 # 라이브러리 패널이 쓰는 HTTP 라우트. ComfyUI 서버가 없으면 조용히 아무 일도

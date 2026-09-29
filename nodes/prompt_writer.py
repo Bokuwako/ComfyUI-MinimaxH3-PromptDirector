@@ -6,7 +6,7 @@ import json
 import re
 import time
 
-from ..mmh3 import (director_link, guideline, ollama_client, roles,
+from ..mmh3 import (authoring_checks, director_link, guideline, ollama_client, roles,
                     shotcards, shotlist, styles, validator, vision)
 
 CATEGORY = "MiniMax H3/Prompt"
@@ -196,6 +196,7 @@ class MMH3_OllamaPromptWriter:
                                "진행 중인 채로 끝내라는 블록이 붙습니다. H3 Project Hub 의 "
                                "chain_active 를 연결하면 자동입니다.",
                 }),
+                "external_image_1_path": ("STRING", {"forceInput": True, "tooltip": "Automatically follows Director external_image_1_path when queued from ComfyUI."}),
             },
             "hidden": {
                 "graph_prompt": "PROMPT",
@@ -218,6 +219,7 @@ class MMH3_OllamaPromptWriter:
         payload = repr(sorted((k, str(v)[:2000]) for k, v in kw.items()
                               if k not in ("first_frame", "last_frame", "ref_images",
                                            "graph_prompt")))
+        payload += director_link.external_path_fingerprint(kw.get("external_image_1_path"))
         # The Director's widgets are not our inputs, so hash them in explicitly or a
         # mode/duration/image change over there would never re-trigger this node.
         if kw.get("link_to_director", True):
@@ -241,7 +243,7 @@ class MMH3_OllamaPromptWriter:
             dialogue_mode="none", dialogue_language="English",
             include_soundscape=True, include_music=True,
             dialogue_text="", register="", picture_roles="", custom_style="",
-            extra_directives="", continuation=False):
+            extra_directives="", continuation=False, external_image_1_path=None):
 
         # ---- unpack the composer's spec over the authoring defaults
         spec_note = ""
@@ -297,10 +299,14 @@ class MMH3_OllamaPromptWriter:
         has_ref = ref_images is not None
         manual_images = has_first or has_last or has_ref
 
+        if external_image_1_path is not None and (manual_images or not link_to_director):
+            raise ValueError("External image 1 requires link_to_director=True and no manual IMAGE inputs on Writer.")
+
         # ---- Director link: mode, duration and reference images with no extra wiring
         d = None
         if link_to_director:
-            d = director_link.read_director(graph_prompt, node_id_hint=director_node_id)
+            d = director_link.read_director(graph_prompt, node_id_hint=director_node_id,
+                                            external_image_1_path=external_image_1_path)
             notes.extend(d["notes"])
             # IS_CHANGED 는 dynprompt 없이 호출되어 graph_prompt 가 {} 로 들어옵니다.
             # 그래서 Director 의 mode/길이/이미지를 바꿔도 이 노드는 재실행되지 않고
@@ -328,6 +334,9 @@ class MMH3_OllamaPromptWriter:
                 notes.append("mode widget overrides the Director ({} -> {}).".format(
                     d["mode"], resolved))
 
+        if external_image_1_path is not None and (not d or not d["found"] or resolved == "T2VA"):
+            raise ValueError("External image 1 requires a linked Director and an image mode.")
+
         # ---- duration
         duration = _safe_int(duration, 0)
         shot_count = _safe_int(shot_count, 0)
@@ -347,6 +356,9 @@ class MMH3_OllamaPromptWriter:
                          "using {}s.".format(duration, d["duration"], duration))
 
         for problem in shotcards.cut_time_problems(_s.get("cut_times", []), float(duration)):
+            notes.append("[warn] " + problem)
+
+        for problem in authoring_checks.card_problems(_s.get("authoring_cards", []), float(duration)):
             notes.append("[warn] " + problem)
 
         # ---- style
@@ -434,6 +446,11 @@ class MMH3_OllamaPromptWriter:
                 notes.append("could not verify vision support for '{}' — if the prompt "
                              "ignores the images, use a vision model (qwen2.5vl:7b)."
                              .format(reader))
+
+        for problem in authoring_checks.reference_problems(
+                _s.get("ref_roles", []), _s.get("authoring_cards", []),
+                mode=resolved, picture_numbers=(pic_numbers or list(range(1, len(images) + 1)))):
+            notes.append("[warn] " + problem)
 
         # ---- Picture roles: say what each reference is FOR, and that none is a frame.
         parsed_roles, role_problems = roles.parse(picture_roles, n_images=len(images))
@@ -668,6 +685,8 @@ class MMH3_OllamaPromptWriter:
                                      "(qwen2.5vl:32b) or lower temperature.")
 
         requested_rows = _s.get("dialogue_rows") or []
+        if re.search(r"\{(?:A|B)\}", clean):
+            notes.append("[warn] 치환되지 않은 참여자 변수가 출력에 남았습니다. 원문은 자동 변경하지 않습니다.")
         requested_speech = dialogue_mode in ("speech", "verbatim") or bool(re.search(
             r"대사|라고\s*(?:말|묻|외치)|says?\b|asks?\b|dialogue", brief, re.IGNORECASE))
         if dialogue_mode != "none":
