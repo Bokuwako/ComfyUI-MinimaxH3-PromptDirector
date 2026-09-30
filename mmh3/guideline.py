@@ -435,7 +435,12 @@ def build_system_prompt(mode: str, duration: float, shot_hint: int, style: dict,
     placement = "before [Shot 1] in detailed_description" if mode == "REF2VA" else "after [Shot 1]"
     if style and style.get("style_line"):
         sb = ["STYLE: place this style line " + placement + ": " + style["style_line"],
-              "Apply preset tendencies only to choices left open by the shot and frame anchors."]
+              "Apply preset tendencies only to choices left open by the shot and frame anchors.",
+              "The following fields are authoring guidance, not output fields. Integrate applicable "
+              "positive visual traits into concise natural prose at the style placement above; "
+              "apply camera/motion tendencies only where the shot leaves those choices open. "
+              "Route audio tendencies to the corresponding audio sections. Output only the "
+              "mode-required section labels, not these internal field labels."]
         for key in ("render", "lighting", "camera", "motion"):
             if style.get(key):
                 sb.append(key + ": " + style[key])
@@ -444,7 +449,8 @@ def build_system_prompt(mode: str, duration: float, shot_hint: int, style: dict,
         if music_on and style.get("music"):
             sb.append("score tendency: " + style["music"])
         if style.get("avoid"):
-            sb.append("preset exclusions: " + style["avoid"])
+            sb.append("Use this exclusion list only to filter preset-derived descriptions, not as "
+                      "text to copy, paraphrase or enumerate in the finished prompt: " + style["avoid"])
         parts.append("\n".join(sb))
     else:
         parts.append("STYLE: derive from frame images when anchored, otherwise the brief. "
